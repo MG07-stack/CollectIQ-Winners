@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Search, ArrowUpDown, ChevronRight } from "lucide-react";
-import { PANEL, BORDER, CANVAS, TEXT, SUBTLE, MONO } from "../theme.js";
+import { PANEL, BORDER, CANVAS, TEXT, SUBTLE, MONO, money } from "../theme.js";
 import { STATUSES } from "../mockData.js";
 import PriorityBadge from "./PriorityBadge.jsx";
 import StatusPill from "./StatusPill.jsx";
@@ -111,7 +111,7 @@ export default function InvoiceTable({ invoices }) {
                 <td className="px-4 py-3 font-medium" style={{ color: TEXT, fontFamily: MONO }}>{inv.id}</td>
                 <td className="px-4 py-3" style={{ color: TEXT }}>{inv.customer}</td>
                 <td className="px-4 py-3 tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
-                  {inv.amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
+                  {money(inv.amount)}
                 </td>
                 <td className="px-4 py-3 tabular-nums" style={{ color: SUBTLE, fontFamily: MONO }}>
                   {inv.daysOverdue > 0 ? `${inv.daysOverdue}d` : "—"}
@@ -147,7 +147,7 @@ export default function InvoiceTable({ invoices }) {
             <div className="flex justify-between items-center mt-0.5">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
-                  {inv.amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
+                  {money(inv.amount)}
                 </span>
                 {inv.daysOverdue > 0 && (
                   <span className="text-[11px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "#FDF2F2", color: "#B23A2F" }}>

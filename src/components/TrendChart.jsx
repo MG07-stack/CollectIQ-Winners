@@ -12,7 +12,7 @@ export default function TrendChart() {
           <LineChart data={trendData} margin={{ left: -24, right: 8, top: 5, bottom: 0 }}>
             <CartesianGrid stroke={BORDER} vertical={false} />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: SUBTLE }} axisLine={{ stroke: BORDER }} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: SUBTLE }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v / 1000}k`} />
+            <YAxis tick={{ fontSize: 10, fill: SUBTLE }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`} />
             <Tooltip formatter={(v) => money(v)} contentStyle={{ borderRadius: 8, border: `1px solid ${BORDER}`, fontSize: 12 }} />
             <Line type="monotone" dataKey="outstanding" stroke={PRIMARY} strokeWidth={2.5} dot={{ r: 2.5 }} name="Outstanding" />
             <Line type="monotone" dataKey="overdue" stroke={HIGH} strokeWidth={2.5} dot={{ r: 2.5 }} name="Overdue" />

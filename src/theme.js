@@ -30,4 +30,4 @@ export const statusColors = {
 };
 
 export const money = (n) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  "₹" + (n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });

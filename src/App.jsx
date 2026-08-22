@@ -14,29 +14,26 @@ import CustomerDashboard from "./components/CustomerDashboard.jsx";
 import FieldVisit from "./components/FieldVisit.jsx";
 import VisitLog from "./components/VisitLog.jsx";
 
-const SESSION_KEY = "collectiq_session"; // stores { token, user }
+const SESSION_KEY = "collectiq_session";
 
 export default function App() {
-  const [session, setSession] = useState(null); // { token, user }
+  const [session, setSession] = useState(null);
   const [tab, setTab] = useState("overview");
   const [invoices, setInvoices] = useState([]);
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
 
-  // Restore session on page load/refresh
+  // Restore session from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(SESSION_KEY);
     if (saved) {
-      try {
-        setSession(JSON.parse(saved));
-      } catch {
-        localStorage.removeItem(SESSION_KEY);
-      }
+      try { setSession(JSON.parse(saved)); }
+      catch { localStorage.removeItem(SESSION_KEY); }
     }
   }, []);
 
-  // Once we have a valid session, load real data from the backend
+  // Fetch data on valid session
   useEffect(() => {
     if (!session) return;
     loadData(session.token);
@@ -46,11 +43,14 @@ export default function App() {
     setLoading(true);
     setLoadError("");
     try {
-      const [invoiceData, visitData] = await Promise.all([getInvoices(token), getVisits(token)]);
-      setInvoices(invoiceData);
-      setVisits(visitData);
+      const [invoiceData, visitData] = await Promise.all([
+        getInvoices(token),
+        getVisits(token),
+      ]);
+      setInvoices(invoiceData || []);
+      setVisits(visitData || []);
     } catch (err) {
-      setLoadError(err.message || "Couldn't load data from the server.");
+      setLoadError(err.message || "Couldn't load data from backend server.");
     } finally {
       setLoading(false);
     }
@@ -71,11 +71,10 @@ export default function App() {
 
   async function handleRecordVisit(visit) {
     try {
-      await postVisit(session.token, visit);
-      // Re-fetch so the dashboard reflects exactly what the server now has.
+      await postVisit(session.token, { ...visit, agent: session.user.name || session.user.username });
       await loadData(session.token);
     } catch (err) {
-      setLoadError(err.message || "Couldn't save the visit.");
+      setLoadError(err.message || "Couldn't save field visit.");
     }
   }
 
@@ -92,52 +91,54 @@ export default function App() {
   const collectionRate = invoices.length > 0 ? Math.round((paidCount / invoices.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row" style={{ backgroundColor: CANVAS, fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen flex flex-col md:flex-row w-full overflow-x-hidden" style={{ backgroundColor: CANVAS, fontFamily: "'Inter', sans-serif" }}>
       <Sidebar tab={tab} setTab={setTab} user={session.user} onLogout={handleLogout} />
 
-      <main className="flex-1 px-4 py-6 md:px-8 md:py-8 max-w-6xl">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold" style={{ color: TEXT, fontFamily: SERIF }}>
+      <main className="flex-1 px-3.5 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 max-w-6xl w-full">
+        <header className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight" style={{ color: TEXT, fontFamily: SERIF }}>
             {tab === "overview" && "Collections overview"}
             {tab === "invoices" && "Invoices"}
             {tab === "customers" && "Customers"}
             {tab === "visits" && "Field Visits"}
           </h1>
-          <p className="text-sm mt-1" style={{ color: SUBTLE }}>
+          <p className="text-xs sm:text-sm mt-0.5 sm:mt-1" style={{ color: SUBTLE }}>
             {tab === "overview" && "Where the money is, and who needs a nudge today."}
             {tab === "invoices" && "Search, filter and triage every open invoice."}
             {tab === "customers" && "Outstanding balances grouped by customer."}
-            {tab === "visits" && "Tap a customer's NFC card to pull up their balance and log the visit outcome."}
+            {tab === "visits" && "Record field audit visits and cash collections."}
           </p>
         </header>
 
         {loadError && (
-          <div className="mb-4 text-sm rounded-lg px-3 py-2" style={{ backgroundColor: "#F6E4E1", color: "#B23A2F" }}>
+          <div className="mb-4 text-xs sm:text-sm rounded-lg px-3 py-2" style={{ backgroundColor: "#F6E4E1", color: "#B23A2F" }}>
             {loadError}
           </div>
         )}
 
         {loading && invoices.length === 0 ? (
-          <div className="text-sm" style={{ color: SUBTLE }}>Loading data...</div>
+          <div className="text-xs sm:text-sm py-10 text-center" style={{ color: SUBTLE }}>
+            Loading dashboard data...
+          </div>
         ) : (
           <>
             {tab === "overview" && (
-              <div className="flex flex-col gap-5">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex flex-col gap-4 sm:gap-5">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                   <KpiCard icon={Wallet} label="Outstanding" value={money(totalOutstanding)} accent={PRIMARY} sub={`${unpaid.length} open invoices`} />
                   <KpiCard icon={Clock} label="Overdue" value={money(totalOverdue)} accent={HIGH} sub={`${overdue.length} past due`} />
                   <KpiCard icon={AlertCircle} label="High priority" value={highCount} accent={HIGH} sub="need action today" />
                   <KpiCard icon={TrendingUp} label="Collection rate" value={`${collectionRate}%`} accent={PRIMARY} sub="of invoices paid" />
                 </div>
-                <div className="grid lg:grid-cols-3 gap-4">
+                <div className="grid lg:grid-cols-3 gap-3.5 sm:gap-4">
                   <div className="lg:col-span-2"><TrendChart /></div>
                   <PriorityDonut invoices={invoices} />
                 </div>
                 <AgingMeter invoices={invoices} />
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold" style={{ color: TEXT }}>High priority invoices</h3>
-                    <button onClick={() => setTab("invoices")} className="text-xs font-medium flex items-center gap-1" style={{ color: PRIMARY }}>
+                  <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+                    <h3 className="text-xs sm:text-sm font-semibold" style={{ color: TEXT }}>High priority invoices</h3>
+                    <button onClick={() => setTab("invoices")} className="text-xs font-medium flex items-center gap-1 hover:underline" style={{ color: PRIMARY }}>
                       View all <ChevronRight size={13} />
                     </button>
                   </div>
@@ -150,10 +151,10 @@ export default function App() {
             {tab === "customers" && <CustomerDashboard invoices={invoices} />}
 
             {tab === "visits" && (
-              <div className="grid lg:grid-cols-2 gap-5">
+              <div className="grid lg:grid-cols-2 gap-4 sm:gap-5">
                 <FieldVisit invoices={invoices} onRecordVisit={handleRecordVisit} />
                 <div>
-                  <h3 className="text-sm font-semibold mb-3" style={{ color: TEXT }}>Today's visit log</h3>
+                  <h3 className="text-xs sm:text-sm font-semibold mb-2.5 sm:mb-3" style={{ color: TEXT }}>Visit history log</h3>
                   <VisitLog visits={visits} />
                 </div>
               </div>
