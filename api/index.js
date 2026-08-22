@@ -10,6 +10,8 @@ const DEMO_USERS = {
   agent2: { id: "u3", username: "agent2", name: "Marcus Vance (Agent 2)", role: "Field Agent", token: "tok_agent2_12345" },
 };
 
+let registeredUsers = { ...DEMO_USERS };
+
 function parseJsonBody(req) {
   return new Promise((resolve) => {
     if (req.body && typeof req.body === "object") return resolve(req.body);
@@ -24,10 +26,10 @@ function parseJsonBody(req) {
 
 function getUserFromToken(req) {
   const authHeader = req.headers?.authorization || req.headers?.Authorization;
-  if (!authHeader) return DEMO_USERS.admin; // default if not passed
+  if (!authHeader) return registeredUsers.admin;
   const token = authHeader.replace("Bearer ", "").trim();
-  const user = Object.values(DEMO_USERS).find((u) => u.token === token);
-  return user || DEMO_USERS.admin;
+  const user = Object.values(registeredUsers).find((u) => u.token === token);
+  return user || registeredUsers.admin;
 }
 
 export default async function handler(req, res) {
@@ -41,17 +43,77 @@ export default async function handler(req, res) {
 
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   const pathname = url.pathname.replace(/\/$/, "");
-  const currentUser = getUserFromToken(req);
+
+  // User Registration: POST /api/auth/register
+  if (req.method === "POST" && (pathname === "/api/auth/register" || pathname === "/auth/register")) {
+    const body = await parseJsonBody(req);
+    const { username, password, name, role } = body;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password are required." });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    if (registeredUsers[cleanUsername]) {
+      return res.status(400).json({ error: "Username is already taken. Please choose another." });
+    }
+
+    const newUser = {
+      id: `u_${Date.now()}`,
+      username: cleanUsername,
+      name: name?.trim() || cleanUsername,
+      role: role || "Field Agent",
+      token: `tok_${cleanUsername}_${Date.now()}`,
+      password: password,
+    };
+
+    registeredUsers[cleanUsername] = newUser;
+
+    // Seed 2 initial invoices for new field agents
+    invoicesStore.push(
+      {
+        id: `INV-IN-${Date.now()}-1`,
+        customer: "Tata Consultancy Services",
+        assignedTo: cleanUsername,
+        amount: 380000,
+        status: "Outstanding",
+        priority: "High",
+        daysOverdue: 12,
+        issued: new Date().toISOString().slice(0, 10),
+        due: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
+      },
+      {
+        id: `INV-IN-${Date.now()}-2`,
+        customer: "Reliance Digital",
+        assignedTo: cleanUsername,
+        amount: 240000,
+        status: "Overdue",
+        priority: "Medium",
+        daysOverdue: 28,
+        issued: new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10),
+        due: new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10),
+      }
+    );
+
+    return res.status(201).json({ token: newUser.token, user: newUser });
+  }
 
   // Authentication: POST /api/auth/login
   if (req.method === "POST" && (pathname === "/api/auth/login" || pathname === "/auth/login")) {
     const body = await parseJsonBody(req);
-    const user = DEMO_USERS[body?.username?.toLowerCase()];
-    if (user && body?.password === `${user.username}123`) {
+    const cleanUsername = body?.username?.trim().toLowerCase();
+    const user = registeredUsers[cleanUsername];
+
+    const isDemoPass = DEMO_USERS[cleanUsername] && body?.password === `${cleanUsername}123`;
+    const isCustomPass = user && user.password && body?.password === user.password;
+
+    if (user && (isDemoPass || isCustomPass)) {
       return res.status(200).json({ token: user.token, user });
     }
-    return res.status(401).json({ error: "Invalid username or password. Demo credentials: admin / admin123, agent1 / agent123, agent2 / agent123" });
+    return res.status(401).json({ error: "Invalid username or password. Check credentials or register." });
   }
+
+  const currentUser = getUserFromToken(req);
 
   // Helper to filter invoices for the current logged in user
   const userInvoices = currentUser.role === "Admin"
