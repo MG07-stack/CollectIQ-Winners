@@ -49,33 +49,33 @@ export default function InvoiceTable({ invoices }) {
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ backgroundColor: PANEL, border: `1px solid ${BORDER}` }}>
-      <div className="p-4 flex flex-col sm:flex-row gap-3 sm:items-center" style={{ borderBottom: `1px solid ${BORDER}` }}>
+      <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row gap-2.5 sm:gap-3 sm:items-center" style={{ borderBottom: `1px solid ${BORDER}` }}>
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: SUBTLE }} />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: SUBTLE }} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search invoice or customer..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg text-sm outline-none"
+            className="w-full pl-9 pr-3 py-2 rounded-lg text-xs sm:text-sm outline-none transition-shadow focus:ring-2 focus:ring-emerald-500/20"
             style={{ border: `1px solid ${BORDER}`, backgroundColor: CANVAS, color: TEXT }}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:flex gap-2">
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="text-sm rounded-lg px-3 py-2 outline-none"
+            className="text-xs sm:text-sm rounded-lg px-2.5 py-2 outline-none cursor-pointer"
             style={{ border: `1px solid ${BORDER}`, backgroundColor: CANVAS, color: TEXT }}
           >
-            {["All", "High", "Medium", "Low"].map((p) => <option key={p}>{p}</option>)}
+            {["All", "High", "Medium", "Low"].map((p) => <option key={p} value={p}>Priority: {p}</option>)}
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-sm rounded-lg px-3 py-2 outline-none"
+            className="text-xs sm:text-sm rounded-lg px-2.5 py-2 outline-none cursor-pointer"
             style={{ border: `1px solid ${BORDER}`, backgroundColor: CANVAS, color: TEXT }}
           >
-            {["All", ...STATUSES].map((s) => <option key={s}>{s}</option>)}
+            {["All", ...STATUSES].map((s) => <option key={s} value={s}>Status: {s}</option>)}
           </select>
         </div>
       </div>
@@ -130,22 +130,37 @@ export default function InvoiceTable({ invoices }) {
 
       <div className="md:hidden divide-y" style={{ borderColor: BORDER }}>
         {filtered.map((inv) => (
-          <div key={inv.id} onClick={() => setSelected(inv)} className="p-4 flex flex-col gap-2" style={{ borderTop: `1px solid ${BORDER}` }}>
+          <div
+            key={inv.id}
+            onClick={() => setSelected(inv)}
+            className="p-3.5 flex flex-col gap-2 active:bg-black/[0.04] transition-colors cursor-pointer"
+            style={{ borderTop: `1px solid ${BORDER}` }}
+          >
             <div className="flex justify-between items-center">
-              <span className="font-medium text-sm" style={{ color: TEXT, fontFamily: MONO }}>{inv.id}</span>
-              <PriorityBadge level={inv.priority} />
+              <span className="font-semibold text-xs sm:text-sm" style={{ color: TEXT, fontFamily: MONO }}>{inv.id}</span>
+              <div className="flex items-center gap-2">
+                <PriorityBadge level={inv.priority} />
+                <ChevronRight size={15} style={{ color: SUBTLE }} />
+              </div>
             </div>
-            <span className="text-sm" style={{ color: TEXT }}>{inv.customer}</span>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
-                {inv.amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
-              </span>
+            <span className="text-xs sm:text-sm font-medium" style={{ color: TEXT }}>{inv.customer}</span>
+            <div className="flex justify-between items-center mt-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
+                  {inv.amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
+                </span>
+                {inv.daysOverdue > 0 && (
+                  <span className="text-[11px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "#FDF2F2", color: "#B23A2F" }}>
+                    {inv.daysOverdue}d overdue
+                  </span>
+                )}
+              </div>
               <StatusPill status={inv.status} />
             </div>
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="text-center py-10 text-sm" style={{ color: SUBTLE }}>No invoices match your filters.</div>
+          <div className="text-center py-10 text-xs sm:text-sm" style={{ color: SUBTLE }}>No invoices match your filters.</div>
         )}
       </div>
 

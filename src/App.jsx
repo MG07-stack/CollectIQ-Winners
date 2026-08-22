@@ -23,17 +23,17 @@ export default function App() {
   const collectionRate = Math.round((paidCount / invoices.length) * 100);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row" style={{ backgroundColor: CANVAS, fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen flex flex-col md:flex-row w-full overflow-x-hidden" style={{ backgroundColor: CANVAS, fontFamily: "'Inter', sans-serif" }}>
       <Sidebar tab={tab} setTab={setTab} />
 
-      <main className="flex-1 px-4 py-6 md:px-8 md:py-8 max-w-6xl">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold" style={{ color: TEXT, fontFamily: SERIF }}>
+      <main className="flex-1 px-3.5 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 max-w-6xl w-full">
+        <header className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight" style={{ color: TEXT, fontFamily: SERIF }}>
             {tab === "overview" && "Collections overview"}
             {tab === "invoices" && "Invoices"}
             {tab === "customers" && "Customers"}
           </h1>
-          <p className="text-sm mt-1" style={{ color: SUBTLE }}>
+          <p className="text-xs sm:text-sm mt-0.5 sm:mt-1" style={{ color: SUBTLE }}>
             {tab === "overview" && "Where the money is, and who needs a nudge today."}
             {tab === "invoices" && "Search, filter and triage every open invoice."}
             {tab === "customers" && "Outstanding balances grouped by customer."}
@@ -41,22 +41,22 @@ export default function App() {
         </header>
 
         {tab === "overview" && (
-          <div className="flex flex-col gap-5">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col gap-4 sm:gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
               <KpiCard icon={Wallet} label="Outstanding" value={money(totalOutstanding)} accent={PRIMARY} sub={`${unpaid.length} open invoices`} />
               <KpiCard icon={Clock} label="Overdue" value={money(totalOverdue)} accent={HIGH} sub={`${overdue.length} past due`} />
               <KpiCard icon={AlertCircle} label="High priority" value={highCount} accent={HIGH} sub="need action today" />
               <KpiCard icon={TrendingUp} label="Collection rate" value={`${collectionRate}%`} accent={PRIMARY} sub="of invoices paid" />
             </div>
-            <div className="grid lg:grid-cols-3 gap-4">
+            <div className="grid lg:grid-cols-3 gap-3.5 sm:gap-4">
               <div className="lg:col-span-2"><TrendChart /></div>
               <PriorityDonut invoices={invoices} />
             </div>
             <AgingMeter invoices={invoices} />
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold" style={{ color: TEXT }}>High priority invoices</h3>
-                <button onClick={() => setTab("invoices")} className="text-xs font-medium flex items-center gap-1" style={{ color: PRIMARY }}>
+              <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+                <h3 className="text-xs sm:text-sm font-semibold" style={{ color: TEXT }}>High priority invoices</h3>
+                <button onClick={() => setTab("invoices")} className="text-xs font-medium flex items-center gap-1 hover:underline" style={{ color: PRIMARY }}>
                   View all <ChevronRight size={13} />
                 </button>
               </div>
