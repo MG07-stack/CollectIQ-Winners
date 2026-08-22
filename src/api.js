@@ -1,4 +1,4 @@
-import { invoices as mockInvoices, mockVisits } from "./mockData.js";
+import { invoices as mockInvoices, mockVisits, CUSTOMERS_LIST, findCustomer } from "./mockData.js";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -53,8 +53,15 @@ async function request(path, { method = "GET", token, body } = {}) {
     if (res.ok) {
       return await res.json();
     }
-  } catch {
-    // Graceful fallback to client mock engine
+    if (res.status === 404) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || errData.error || "Customer not found");
+    }
+  } catch (err) {
+    if (err.message && (err.message.includes("Customer not found") || err.message.includes("not linked"))) {
+      throw err;
+    }
+    // Fallback to client mock engine
   }
 
   const users = getRegisteredUsers();
@@ -91,6 +98,7 @@ async function request(path, { method = "GET", token, body } = {}) {
     allInvoices.push(
       {
         id: `INV-IN-${Date.now()}-1`,
+        customerId: "CUST002",
         customer: "Tata Consultancy Services",
         assignedTo: cleanUsername,
         amount: 380000,
@@ -102,6 +110,7 @@ async function request(path, { method = "GET", token, body } = {}) {
       },
       {
         id: `INV-IN-${Date.now()}-2`,
+        customerId: "CUST003",
         customer: "Reliance Digital",
         assignedTo: cleanUsername,
         amount: 240000,
@@ -135,14 +144,153 @@ async function request(path, { method = "GET", token, body } = {}) {
     return userInvoices;
   }
 
+  // Single Customer Visit Fallback: POST /api/customers/:id/visit
+  const customerVisitMatch = path.match(/customers\/([^\/\?]+)\/visit/i);
+  if (customerVisitMatch && method === "POST") {
+    const customerId = customerVisitMatch[1];
+    const customer = findCustomer(customerId);
+    const custName = customer ? customer.name : customerId;
+    const custInvoices = allInvoices.filter((i) => i.customer.toLowerCase() === custName.toLowerCase() || (customer && i.customerId === customer.id));
+
+    if (!customer && custInvoices.length === 0) {
+      throw new Error("Customer Not Found: The NFC card is not linked to a valid CollectIQ customer.");
+    }
+
+    const visits = getLocalVisits();
+    const visitAmount = Number(body?.amount) || 0;
+    const nowIso = new Date().toISOString();
+
+    const newVisit = {
+      id: `v-${Date.now()}`,
+      customerId: customer ? customer.id : customerId.toUpperCase(),
+      customer: customer ? customer.name : custName,
+      outcome: body?.outcome || "NFC Tap Check-in",
+      date: nowIso.split("T")[0],
+      visit_time: nowIso,
+      agent: currentUser.name || currentUser.username || body?.agent || "Field Agent",
+      amount: visitAmount,
+      notes: body?.notes || "Customer identified & visit verified via NFC card tap.",
+      type: "NFC_TAP",
+    };
+
+    visits.unshift(newVisit);
+    localStorage.setItem("collectiq_visits", JSON.stringify(visits));
+
+    if (body?.invoiceId) {
+      const invs = allInvoices.map((inv) => {
+        if (inv.id !== body.invoiceId) return inv;
+        if (body?.outcome === "Collected Cash" || visitAmount > 0) {
+          if (visitAmount >= inv.amount) {
+            return { ...inv, status: "Paid", priority: "Low", daysOverdue: 0 };
+          } else {
+            return { ...inv, status: "Partially Paid", amount: Math.max(0, inv.amount - visitAmount) };
+          }
+        }
+        if (body?.outcome === "Promised Payment" && inv.status === "Overdue") {
+          return { ...inv, status: "Partially Paid" };
+        }
+        return inv;
+      });
+      localStorage.setItem("collectiq_invoices", JSON.stringify(invs));
+    }
+
+    return {
+      success: true,
+      message: "Visit recorded successfully",
+      customer_id: newVisit.customerId,
+      customer: newVisit.customer,
+      visit_time: newVisit.visit_time,
+      visit: newVisit,
+    };
+  }
+
+  // Single Customer Profile Fallback: GET /api/customers/:id
+  const singleCustomerMatch = path.match(/customers\/([^\/\?]+)$/i);
+  if (singleCustomerMatch && method === "GET") {
+    const customerId = singleCustomerMatch[1];
+    const customer = findCustomer(customerId);
+    const custName = customer ? customer.name : customerId;
+    const custInvoices = allInvoices.filter((i) => i.customer.toLowerCase() === custName.toLowerCase() || (customer && i.customerId === customer.id));
+
+    if (!customer && custInvoices.length === 0) {
+      throw new Error("Customer Not Found: The NFC card is not linked to a valid CollectIQ customer.");
+    }
+
+    const unpaid = custInvoices.filter((i) => i.status !== "Paid");
+    const outstanding = unpaid.reduce((s, i) => s + i.amount, 0);
+    const overdue = unpaid.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
+    const high = unpaid.filter((i) => i.priority === "High").length;
+
+    const visits = getLocalVisits();
+    const customerVisits = visits.filter((v) =>
+      (customer && v.customerId === customer.id) ||
+      v.customer.toLowerCase() === custName.toLowerCase()
+    );
+    const lastVisit = customerVisits[0] || null;
+
+    return {
+      id: customer ? customer.id : customerId.toUpperCase(),
+      name: customer ? customer.name : custName,
+      outstanding,
+      overdue,
+      high,
+      address: customer?.address || "Plot 42, Industrial Area, Sector 18",
+      phone: customer?.phone || "+91 98765 43210",
+      agent: customer?.agent || custInvoices[0]?.assignedTo || "agent1",
+      invoices: custInvoices,
+      lastVisit: lastVisit ? (lastVisit.visit_time || lastVisit.date) : null,
+      lastVisitRecord: lastVisit,
+    };
+  }
+
+  // Customers List
   if (path.includes("/customers")) {
     const map = {};
+    CUSTOMERS_LIST.forEach((c) => {
+      map[c.name] = {
+        id: c.id,
+        name: c.name,
+        address: c.address,
+        phone: c.phone,
+        agent: c.agent,
+        invoices: [],
+        outstanding: 0,
+        overdue: 0,
+        high: 0,
+        lastVisit: null,
+      };
+    });
+
     userInvoices.forEach((inv) => {
-      if (!map[inv.customer]) map[inv.customer] = { name: inv.customer, invoices: [], outstanding: 0, high: 0 };
+      if (!map[inv.customer]) {
+        const found = findCustomer(inv.customer);
+        map[inv.customer] = {
+          id: found ? found.id : `CUST-${inv.customer.slice(0, 4).toUpperCase()}`,
+          name: inv.customer,
+          address: found?.address || "Registered Address",
+          phone: found?.phone || "+91 98000 00000",
+          agent: inv.assignedTo,
+          invoices: [],
+          outstanding: 0,
+          overdue: 0,
+          high: 0,
+          lastVisit: null,
+        };
+      }
       map[inv.customer].invoices.push(inv);
-      if (inv.status !== "Paid") map[inv.customer].outstanding += inv.amount;
+      if (inv.status !== "Paid") {
+        map[inv.customer].outstanding += inv.amount;
+        if (inv.daysOverdue > 0) map[inv.customer].overdue += inv.amount;
+      }
       if (inv.priority === "High" && inv.status !== "Paid") map[inv.customer].high += 1;
     });
+
+    const visits = getLocalVisits();
+    Object.values(map).forEach((c) => {
+      const v = visits.find((item) => item.customerId === c.id || item.customer.toLowerCase() === c.name.toLowerCase());
+      if (v) c.lastVisit = v.visit_time || v.date;
+    });
+
     return Object.values(map);
   }
 
@@ -161,14 +309,20 @@ async function request(path, { method = "GET", token, body } = {}) {
   if (path.includes("/visits") && method === "POST") {
     const visits = getLocalVisits();
     const visitAmount = Number(body?.amount) || 0;
+    const nowIso = new Date().toISOString();
+    const matchedCustomer = findCustomer(body?.customerId || body?.customer);
+
     const newVisit = {
       id: `v-${Date.now()}`,
-      customer: body?.customer || "Unknown",
-      outcome: body?.outcome || "Contacted",
-      date: new Date().toISOString().split("T")[0],
-      agent: currentUser.name || currentUser.username,
+      customerId: matchedCustomer ? matchedCustomer.id : (body?.customerId || "CUST001"),
+      customer: body?.customer || (matchedCustomer ? matchedCustomer.name : "Unknown"),
+      outcome: body?.outcome || "Contacted Customer",
+      date: nowIso.split("T")[0],
+      visit_time: nowIso,
+      agent: currentUser.name || currentUser.username || body?.agent || "Field Agent",
       amount: visitAmount,
       notes: body?.notes || "",
+      type: body?.type || "FIELD_VISIT",
     };
     visits.unshift(newVisit);
     localStorage.setItem("collectiq_visits", JSON.stringify(visits));
@@ -176,7 +330,7 @@ async function request(path, { method = "GET", token, body } = {}) {
     if (body?.invoiceId) {
       const invs = allInvoices.map((inv) => {
         if (inv.id !== body.invoiceId) return inv;
-        if (body?.outcome === "Collected Cash") {
+        if (body?.outcome === "Collected Cash" || visitAmount > 0) {
           if (visitAmount >= inv.amount) {
             return { ...inv, status: "Paid", priority: "Low", daysOverdue: 0 };
           } else {
@@ -213,6 +367,18 @@ export function getCustomers(token) {
   return request("/api/customers", { token });
 }
 
+export function getCustomerById(token, customerId) {
+  return request(`/api/customers/${encodeURIComponent(customerId)}`, { token });
+}
+
+export function recordCustomerVisit(token, customerId, visitData = {}) {
+  return request(`/api/customers/${encodeURIComponent(customerId)}/visit`, {
+    method: "POST",
+    token,
+    body: visitData,
+  });
+}
+
 export function getVisits(token) {
   return request("/api/visits", { token });
 }
@@ -228,3 +394,4 @@ export function getDashboardSummary(token) {
 export function lookupNfcTag(tagId) {
   return request(`/api/nfc/lookup?tagId=${encodeURIComponent(tagId)}`);
 }
+
