@@ -1,5 +1,19 @@
-import React, { useState } from "react";
-import { LayoutDashboard, FileText, Users, MapPin, ChevronLeft, ChevronRight, Menu, X, LogOut } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  LogOut,
+  User,
+  Shield,
+  Mail,
+  ChevronUp,
+} from "lucide-react";
 import { INK, PRIMARY, SERIF } from "../theme.js";
 
 const navItems = [
@@ -12,11 +26,37 @@ const navItems = [
 export default function Sidebar({ tab, setTab, user, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(event.target)
+      ) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const displayName = user?.full_name || user?.name || user?.username || "User";
+  const displayEmail = user?.email || `${(user?.username || "user").toLowerCase()}@collectiq.com`;
+  const displayRole = user?.role || "Field Agent";
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <aside
-      className={`w-full shrink-0 sticky top-0 z-30 md:relative flex flex-col md:justify-between transition-all duration-300 ${collapsed ? "md:w-16 px-2.5 py-3 md:py-6" : "md:w-60 px-4 py-3 sm:px-6 sm:py-4 md:px-5 md:py-6"
-        }`}
+      className={`w-full shrink-0 sticky top-0 z-30 md:relative flex flex-col md:justify-between transition-all duration-300 ${
+        collapsed
+          ? "md:w-16 px-2.5 py-3 md:py-6"
+          : "md:w-64 px-4 py-3 sm:px-6 sm:py-4 md:px-5 md:py-6"
+      }`}
       style={{ backgroundColor: INK }}
     >
       {/* Desktop Header */}
@@ -93,11 +133,14 @@ export default function Sidebar({ tab, setTab, user, onLogout }) {
               key={item.key}
               onClick={() => setTab(item.key)}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors text-left ${collapsed ? "justify-center px-0 py-2.5 h-10 w-10 mx-auto" : "px-3 py-2.5"
-                }`}
+              className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all text-left cursor-pointer ${
+                collapsed
+                  ? "justify-center px-0 py-2.5 h-10 w-10 mx-auto"
+                  : "px-3.5 py-2.5"
+              }`}
               style={{
-                backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "transparent",
-                color: isActive ? "white" : "rgba(255,255,255,0.55)",
+                backgroundColor: isActive ? "rgba(255,255,255,0.14)" : "transparent",
+                color: isActive ? "white" : "rgba(255,255,255,0.6)",
               }}
             >
               <item.icon size={18} className="shrink-0" />
@@ -107,37 +150,90 @@ export default function Sidebar({ tab, setTab, user, onLogout }) {
         })}
       </nav>
 
-      {/* Desktop User Profile & Sign Out Footer */}
-      <div className="hidden md:flex flex-col gap-3 mt-auto pt-4 border-t border-white/10">
+      {/* Desktop User Profile & Dropdown */}
+      <div
+        ref={profileDropdownRef}
+        className="hidden md:flex flex-col gap-2 mt-auto pt-4 border-t border-white/10 relative"
+      >
         {user && (
-          collapsed ? (
-            <button
-              onClick={onLogout}
-              className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-              title={`Sign out (${user.name || user.username})`}
-            >
-              <LogOut size={18} />
-            </button>
-          ) : (
-            <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center shrink-0">
-                  {(user.name || user.username).charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-white truncate">{user.name || user.username}</div>
-                  <div className="text-[10px] text-white/50 truncate">{user.role || "User"}</div>
-                </div>
-              </div>
+          <>
+            {collapsed ? (
               <button
                 onClick={onLogout}
-                className="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-                title="Sign out"
+                className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title={`Sign out (${displayName})`}
               >
-                <LogOut size={15} />
+                <LogOut size={18} />
               </button>
-            </div>
-          )
+            ) : (
+              <>
+                {/* Profile Button / Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="w-full flex items-center justify-between p-2 rounded-xl transition-colors hover:bg-white/10 text-left cursor-pointer border border-transparent hover:border-white/10"
+                  style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                      {initial}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-white truncate">
+                        {displayName}
+                      </div>
+                      <div className="text-[10px] text-white/60 truncate">
+                        {displayEmail}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronUp
+                    size={14}
+                    className={`text-white/60 transition-transform ${
+                      profileDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Profile Dropdown Popup */}
+                {profileDropdownOpen && (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl p-3 bg-[#1e2746] border border-white/15 shadow-2xl flex flex-col gap-2.5 animate-in fade-in zoom-in-95 z-50">
+                    <div className="flex items-center gap-2 pb-2 border-b border-white/10">
+                      <div className="w-9 h-9 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        {initial}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-white truncate">
+                          {displayName}
+                        </div>
+                        <div className="text-[11px] text-white/70 truncate flex items-center gap-1">
+                          <Mail size={10} /> {displayEmail}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-1 py-0.5 text-xs text-white/80">
+                      <span className="text-[11px] text-white/50">Role</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/40">
+                        {displayRole}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        onLogout();
+                      }}
+                      className="w-full mt-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 transition-colors cursor-pointer border border-rose-500/20"
+                    >
+                      <LogOut size={13} />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
       </div>
 
@@ -167,22 +263,29 @@ export default function Sidebar({ tab, setTab, user, onLogout }) {
           })}
 
           {user && (
-            <div className="flex justify-between items-center px-3 py-2.5 mt-2 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center">
-                  {(user.name || user.username).charAt(0).toUpperCase()}
+            <div className="flex flex-col gap-2 p-3 mt-2 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center">
+                  {initial}
                 </div>
-                <div className="text-xs font-semibold text-white">{user.name || user.username}</div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-white truncate">{displayName}</div>
+                  <div className="text-[10px] text-white/50 truncate">{displayEmail}</div>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setMobileOpen(false);
-                  onLogout();
-                }}
-                className="flex items-center gap-1 text-xs text-white/70 hover:text-white px-2 py-1 rounded bg-white/10"
-              >
-                <LogOut size={13} /> Sign out
-              </button>
+
+              <div className="flex justify-between items-center pt-2 border-t border-white/10 text-xs">
+                <span className="text-[11px] text-white/50">{displayRole}</span>
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    onLogout();
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-500/20"
+                >
+                  <LogOut size={12} /> Log out
+                </button>
+              </div>
             </div>
           )}
         </div>

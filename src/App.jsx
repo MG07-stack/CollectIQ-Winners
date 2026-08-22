@@ -1,7 +1,30 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Wallet, Clock, AlertCircle, TrendingUp, ChevronRight, Wifi, CheckCircle2, ShieldCheck, User } from "lucide-react";
-import { CANVAS, PANEL, BORDER, TEXT, SUBTLE, PRIMARY, PRIMARY_SOFT, HIGH, MONO, SERIF, money } from "./theme.js";
-import { getInvoices, getVisits, postVisit } from "./api.js";
+import {
+  Wallet,
+  Clock,
+  AlertCircle,
+  TrendingUp,
+  ChevronRight,
+  Wifi,
+  CheckCircle2,
+  User,
+  LogOut,
+  RefreshCw,
+} from "lucide-react";
+import {
+  CANVAS,
+  PANEL,
+  BORDER,
+  TEXT,
+  SUBTLE,
+  PRIMARY,
+  PRIMARY_SOFT,
+  HIGH,
+  MONO,
+  SERIF,
+  money,
+} from "./theme.js";
+import { getInvoices, getVisits, postVisit, getMe, logout as apiLogout } from "./api.js";
 
 import Login from "./components/Login.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -27,27 +50,36 @@ export default function App() {
   const [loadError, setLoadError] = useState("");
 
   const [routeCustomerId, setRouteCustomerId] = useState(null);
+  const [pendingNfcCustomer, setPendingNfcCustomer] = useState(null);
   const [nfcModalOpen, setNfcModalOpen] = useState(false);
 
   // Parse URL path for /customer/:customerId
   const checkUrlRoute = useCallback(() => {
     const pathname = window.location.pathname;
     const hash = window.location.hash;
-    const match = pathname.match(/^\/customer\/([^\/\?]+)/i) || hash.match(/^#\/customer\/([^\/\?]+)/i);
+    const match =
+      pathname.match(/^\/customer\/([^\/\?]+)/i) ||
+      hash.match(/^#\/customer\/([^\/\?]+)/i);
 
     if (match && match[1]) {
-      setRouteCustomerId(decodeURIComponent(match[1]));
+      const custId = decodeURIComponent(match[1]);
+      setRouteCustomerId(custId);
+      // If not yet authenticated, save as pending NFC destination
+      setPendingNfcCustomer(custId);
     } else {
       setRouteCustomerId(null);
     }
   }, []);
 
-  // Restore session from localStorage
+  // Restore session from localStorage & validate
   useEffect(() => {
     const saved = localStorage.getItem(SESSION_KEY);
     if (saved) {
       try {
-        setSession(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed?.token && parsed?.user) {
+          setSession(parsed);
+        }
       } catch {
         localStorage.removeItem(SESSION_KEY);
       }
@@ -65,11 +97,11 @@ export default function App() {
     };
   }, [checkUrlRoute]);
 
-  // Fetch data on valid session
+  // Fetch user data on valid session
   useEffect(() => {
-    if (!session) return;
+    if (!session?.token) return;
     loadData(session.token);
-  }, [session]);
+  }, [session?.token]);
 
   async function loadData(token) {
     setLoading(true);
@@ -82,32 +114,57 @@ export default function App() {
       setInvoices(invoiceData || []);
       setVisits(visitData || []);
     } catch (err) {
-      setLoadError(err.message || "Couldn't load data from backend server.");
+      if (err.status === 401) {
+        handleLogout();
+      } else {
+        setLoadError(err.message || "Couldn't load data from backend server.");
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  function handleLogin(token, user) {
+  function handleLogin(token, user, rememberMe = true) {
     const newSession = { token, user };
     setSession(newSession);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+
+    if (rememberMe) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+    } else {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
+    }
+
+    // If a customer profile was tapped before login, navigate to it now
+    if (pendingNfcCustomer) {
+      setRouteCustomerId(pendingNfcCustomer);
+      window.history.pushState(null, "", `/customer/${pendingNfcCustomer}`);
+    } else {
+      window.history.pushState(null, "", "/");
+      setRouteCustomerId(null);
+    }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    if (session?.token) {
+      await apiLogout(session.token);
+    }
     setSession(null);
     setInvoices([]);
     setVisits([]);
+    setPendingNfcCustomer(null);
+    setRouteCustomerId(null);
     localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    window.history.pushState(null, "", "/");
   }
 
   async function handleRecordVisit(visit) {
     try {
       await postVisit(session?.token, {
         ...visit,
-        agent: session?.user?.name || session?.user?.username || "Field Agent",
+        agent: session?.user?.full_name || session?.user?.name || "Field Agent",
       });
-      if (session) await loadData(session.token);
+      if (session?.token) await loadData(session.token);
     } catch (err) {
       setLoadError(err.message || "Couldn't save field visit.");
     }
@@ -121,50 +178,62 @@ export default function App() {
   function handleBackToDashboard() {
     window.history.pushState(null, "", "/");
     setRouteCustomerId(null);
+    setPendingNfcCustomer(null);
     setTab("overview");
-    if (session) loadData(session.token);
+    if (session?.token) loadData(session.token);
   }
 
-  function handleVisitLogged(newVisit) {
-    if (session) loadData(session.token);
+  function handleVisitLogged() {
+    if (session?.token) loadData(session.token);
   }
 
-  // Active /customer/:customerId Route View (NFC Tap Destination)
+  // If unauthenticated, render Login / Register page
+  if (!session) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  // Active /customer/:customerId Route View (Protected NFC Tap Destination)
   if (routeCustomerId) {
     return (
       <CustomerProfile
         customerId={routeCustomerId}
-        token={session?.token || "tok_agent1_12345"}
-        user={session?.user || { username: "agent1", name: "Alex Rivera (Agent 1)" }}
+        token={session.token}
+        user={session.user}
         onBack={handleBackToDashboard}
         onVisitLogged={handleVisitLogged}
       />
     );
   }
 
-  if (!session) {
-    return <Login onLogin={handleLogin} />;
-  }
-
   const unpaid = invoices.filter((i) => i.status !== "Paid");
-  const totalOutstanding = unpaid.reduce((s, i) => s + i.amount, 0);
+  const totalOutstanding = unpaid.reduce((s, i) => s + (Number(i.amount) || 0), 0);
   const overdue = unpaid.filter((i) => i.daysOverdue > 0);
-  const totalOverdue = overdue.reduce((s, i) => s + i.amount, 0);
+  const totalOverdue = overdue.reduce((s, i) => s + (Number(i.amount) || 0), 0);
   const highCount = unpaid.filter((i) => i.priority === "High").length;
   const paidCount = invoices.filter((i) => i.status === "Paid").length;
-  const collectionRate = invoices.length > 0 ? Math.round((paidCount / invoices.length) * 100) : 0;
+  const collectionRate =
+    invoices.length > 0 ? Math.round((paidCount / invoices.length) * 100) : 0;
 
   return (
     <div
       className="min-h-screen flex flex-col md:flex-row w-full overflow-x-hidden"
       style={{ backgroundColor: CANVAS, fontFamily: "'Inter', sans-serif" }}
     >
-      <Sidebar tab={tab} setTab={setTab} user={session.user} onLogout={handleLogout} />
+      <Sidebar
+        tab={tab}
+        setTab={setTab}
+        user={session.user}
+        onLogout={handleLogout}
+      />
 
       <main className="flex-1 px-3.5 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 max-w-6xl w-full">
+        {/* Top Header */}
         <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight" style={{ color: TEXT, fontFamily: SERIF }}>
+            <h1
+              className="text-xl sm:text-2xl font-semibold tracking-tight"
+              style={{ color: TEXT, fontFamily: SERIF }}
+            >
               {tab === "overview" && "Collections overview"}
               {tab === "invoices" && "Invoices"}
               {tab === "customers" && "Customers"}
@@ -178,8 +247,18 @@ export default function App() {
             </p>
           </div>
 
-          {/* Quick NFC Programmer Button */}
+          {/* Quick NFC Programmer Button & Refresh */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadData(session.token)}
+              disabled={loading}
+              className="p-2 rounded-xl border transition-all hover:bg-black/5 active:scale-95 shadow-xs cursor-pointer"
+              style={{ borderColor: BORDER, color: SUBTLE, backgroundColor: PANEL }}
+              title="Refresh dashboard data"
+            >
+              <RefreshCw size={14} className={loading ? "animate-spin text-emerald-800" : ""} />
+            </button>
+
             <button
               onClick={() => setNfcModalOpen(true)}
               className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all hover:bg-black/5 active:scale-95 shadow-xs cursor-pointer"
@@ -192,48 +271,89 @@ export default function App() {
         </header>
 
         {loadError && (
-          <div className="mb-4 text-xs sm:text-sm rounded-lg px-3 py-2" style={{ backgroundColor: "#F6E4E1", color: "#B23A2F" }}>
-            {loadError}
+          <div
+            className="mb-4 text-xs sm:text-sm rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2"
+            style={{ backgroundColor: "#F6E4E1", color: "#B23A2F" }}
+          >
+            <span>{loadError}</span>
+            <button
+              onClick={() => loadData(session.token)}
+              className="font-semibold underline cursor-pointer text-xs"
+            >
+              Retry
+            </button>
           </div>
         )}
 
         {loading && invoices.length === 0 ? (
-          <div className="text-xs sm:text-sm py-10 text-center" style={{ color: SUBTLE }}>
-            Loading dashboard data...
+          <div className="text-xs sm:text-sm py-16 text-center" style={{ color: SUBTLE }}>
+            Loading your dashboard data...
           </div>
         ) : (
           <>
             {tab === "overview" && (
               <div className="flex flex-col gap-4 sm:gap-5">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-                  <KpiCard icon={Wallet} label="Outstanding" value={money(totalOutstanding)} accent={PRIMARY} sub={`${unpaid.length} open invoices`} />
-                  <KpiCard icon={Clock} label="Overdue" value={money(totalOverdue)} accent={HIGH} sub={`${overdue.length} past due`} />
-                  <KpiCard icon={AlertCircle} label="High priority" value={highCount} accent={HIGH} sub="need action today" />
-                  <KpiCard icon={TrendingUp} label="Collection rate" value={`${collectionRate}%`} accent={PRIMARY} sub="of invoices paid" />
+                  <KpiCard
+                    icon={Wallet}
+                    label="Outstanding"
+                    value={money(totalOutstanding)}
+                    accent={PRIMARY}
+                    sub={`${unpaid.length} open invoices`}
+                  />
+                  <KpiCard
+                    icon={Clock}
+                    label="Overdue"
+                    value={money(totalOverdue)}
+                    accent={HIGH}
+                    sub={`${overdue.length} past due`}
+                  />
+                  <KpiCard
+                    icon={AlertCircle}
+                    label="High priority"
+                    value={highCount}
+                    accent={HIGH}
+                    sub="need action today"
+                  />
+                  <KpiCard
+                    icon={TrendingUp}
+                    label="Collection rate"
+                    value={`${collectionRate}%`}
+                    accent={PRIMARY}
+                    sub="of invoices paid"
+                  />
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-3.5 sm:gap-4">
-                  <div className="lg:col-span-2"><TrendChart /></div>
+                  <div className="lg:col-span-2">
+                    <TrendChart />
+                  </div>
                   <PriorityDonut invoices={invoices} />
                 </div>
 
                 <AgingMeter invoices={invoices} />
 
                 {/* Recent Collection & NFC Activity Section */}
-                <div className="rounded-2xl p-4 sm:p-5 border shadow-xs" style={{ backgroundColor: PANEL, borderColor: BORDER }}>
+                <div
+                  className="rounded-2xl p-4 sm:p-5 border shadow-xs"
+                  style={{ backgroundColor: PANEL, borderColor: BORDER }}
+                >
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center">
                         <CheckCircle2 size={14} />
                       </div>
-                      <h3 className="text-xs sm:text-sm font-semibold" style={{ color: TEXT }}>
+                      <h3
+                        className="text-xs sm:text-sm font-semibold"
+                        style={{ color: TEXT }}
+                      >
                         Recent Collection & NFC Activity
                       </h3>
                     </div>
 
                     <button
                       onClick={() => setTab("visits")}
-                      className="text-xs font-medium flex items-center gap-1 hover:underline"
+                      className="text-xs font-medium flex items-center gap-1 hover:underline cursor-pointer"
                       style={{ color: PRIMARY }}
                     >
                       View visit log <ChevronRight size={13} />
@@ -253,19 +373,28 @@ export default function App() {
                         >
                           <div className="flex items-start justify-between gap-1">
                             <div className="min-w-0">
-                              <span className="font-semibold text-xs sm:text-sm truncate block" style={{ color: TEXT }}>
+                              <span
+                                className="font-semibold text-xs sm:text-sm truncate block"
+                                style={{ color: TEXT }}
+                              >
                                 {v.customer}
                               </span>
                               <span className="text-[11px] text-emerald-800 font-medium flex items-center gap-1 mt-0.5">
                                 <CheckCircle2 size={11} /> {v.outcome || "Visit recorded"}
                               </span>
                             </div>
-                            <span className="text-[10px] font-mono shrink-0" style={{ color: SUBTLE }}>
+                            <span
+                              className="text-[10px] font-mono shrink-0"
+                              style={{ color: SUBTLE }}
+                            >
                               {v.date || "Just now"}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] pt-1.5 border-t" style={{ borderColor: BORDER, color: SUBTLE }}>
+                          <div
+                            className="flex items-center justify-between text-[11px] pt-1.5 border-t"
+                            style={{ borderColor: BORDER, color: SUBTLE }}
+                          >
                             <span className="flex items-center gap-1">
                               <User size={11} /> {v.agent || "Field Agent"}
                             </span>
@@ -279,8 +408,11 @@ export default function App() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-xs text-center py-4" style={{ color: SUBTLE }}>
-                      No recent collection visits recorded today. Tap an NFC card to log a visit.
+                    <div
+                      className="text-xs text-center py-4"
+                      style={{ color: SUBTLE }}
+                    >
+                      No collection visits recorded yet. Tap an NFC card to log a visit.
                     </div>
                   )}
                 </div>
@@ -288,12 +420,25 @@ export default function App() {
                 {/* High Priority Invoices Table */}
                 <div>
                   <div className="flex items-center justify-between mb-2.5 sm:mb-3">
-                    <h3 className="text-xs sm:text-sm font-semibold" style={{ color: TEXT }}>High priority invoices</h3>
-                    <button onClick={() => setTab("invoices")} className="text-xs font-medium flex items-center gap-1 hover:underline" style={{ color: PRIMARY }}>
+                    <h3
+                      className="text-xs sm:text-sm font-semibold"
+                      style={{ color: TEXT }}
+                    >
+                      High priority invoices
+                    </h3>
+                    <button
+                      onClick={() => setTab("invoices")}
+                      className="text-xs font-medium flex items-center gap-1 hover:underline cursor-pointer"
+                      style={{ color: PRIMARY }}
+                    >
                       View all <ChevronRight size={13} />
                     </button>
                   </div>
-                  <InvoiceTable invoices={invoices.filter((i) => i.priority === "High" && i.status !== "Paid").slice(0, 6)} />
+                  <InvoiceTable
+                    invoices={invoices
+                      .filter((i) => i.priority === "High" && i.status !== "Paid")
+                      .slice(0, 6)}
+                  />
                 </div>
               </div>
             )}
@@ -309,9 +454,17 @@ export default function App() {
 
             {tab === "visits" && (
               <div className="grid lg:grid-cols-2 gap-4 sm:gap-5">
-                <FieldVisit invoices={invoices} onRecordVisit={handleRecordVisit} />
+                <FieldVisit
+                  invoices={invoices}
+                  onRecordVisit={handleRecordVisit}
+                />
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold mb-2.5 sm:mb-3" style={{ color: TEXT }}>Visit history log</h3>
+                  <h3
+                    className="text-xs sm:text-sm font-semibold mb-2.5 sm:mb-3"
+                    style={{ color: TEXT }}
+                  >
+                    Visit history log
+                  </h3>
                   <VisitLog visits={visits} />
                 </div>
               </div>
@@ -329,4 +482,3 @@ export default function App() {
     </div>
   );
 }
-
