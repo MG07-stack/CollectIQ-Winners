@@ -47,11 +47,17 @@ export default function Login({ onLogin }) {
     <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: INK }}>
       <div className="w-full max-w-sm rounded-xl p-6 sm:p-8 flex flex-col gap-5 shadow-2xl" style={{ backgroundColor: PANEL }}>
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-base shadow-sm" style={{ backgroundColor: PRIMARY, color: "white", fontFamily: SERIF }}>
-            C
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight" style={{ color: TEXT, fontFamily: SERIF }}>CollectIQ</h1>
-          <p className="text-xs" style={{ color: SUBTLE }}>Collections & Field Audit Dashboard</p>
+          <img
+            src="/logo-icon.png"
+            alt="CollectIQ Icon"
+            className="w-12 h-12 rounded-xl object-contain shadow-md mb-0.5"
+          />
+          <img
+            src="/logo-full.png"
+            alt="CollectIQ"
+            className="h-7 object-contain max-w-[150px]"
+          />
+          <p className="text-xs mt-0.5" style={{ color: SUBTLE }}>Collections & Field Audit Dashboard</p>
         </div>
 
         {/* Mode Selector Tabs */}
@@ -59,18 +65,16 @@ export default function Login({ onLogin }) {
           <button
             type="button"
             onClick={() => { setIsRegistering(false); setError(""); }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              !isRegistering ? "bg-white shadow text-emerald-900" : "text-gray-500 hover:text-gray-900"
-            }`}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${!isRegistering ? "bg-white shadow text-emerald-900" : "text-gray-500 hover:text-gray-900"
+              }`}
           >
             Sign In
           </button>
           <button
             type="button"
             onClick={() => { setIsRegistering(true); setError(""); }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              isRegistering ? "bg-white shadow text-emerald-900" : "text-gray-500 hover:text-gray-900"
-            }`}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${isRegistering ? "bg-white shadow text-emerald-900" : "text-gray-500 hover:text-gray-900"
+              }`}
           >
             Register New User
           </button>

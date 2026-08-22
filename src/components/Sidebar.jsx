@@ -15,24 +15,22 @@ export default function Sidebar({ tab, setTab, user, onLogout }) {
 
   return (
     <aside
-      className={`w-full shrink-0 sticky top-0 z-30 md:relative flex flex-col md:justify-between transition-all duration-300 ${
-        collapsed ? "md:w-16 px-2.5 py-3 md:py-6" : "md:w-60 px-4 py-3 sm:px-6 sm:py-4 md:px-5 md:py-6"
-      }`}
+      className={`w-full shrink-0 sticky top-0 z-30 md:relative flex flex-col md:justify-between transition-all duration-300 ${collapsed ? "md:w-16 px-2.5 py-3 md:py-6" : "md:w-60 px-4 py-3 sm:px-6 sm:py-4 md:px-5 md:py-6"
+        }`}
       style={{ backgroundColor: INK }}
     >
       {/* Desktop Header */}
       <div className="hidden md:flex flex-col items-center">
         {collapsed ? (
           <div className="flex flex-col items-center gap-3 w-full">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm shrink-0"
-              style={{ backgroundColor: PRIMARY, color: "white", fontFamily: SERIF }}
-            >
-              C
-            </div>
+            <img
+              src="/logo-icon.png"
+              alt="CollectIQ"
+              className="w-8 h-8 rounded-lg object-contain shrink-0 shadow-sm"
+            />
             <button
               onClick={() => setCollapsed(false)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-white/10 hover:bg-white/20 transition-all shadow-sm active:scale-95"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-white/10 hover:bg-white/20 transition-all shadow-sm active:scale-95 cursor-pointer"
               title="Expand sidebar"
             >
               <ChevronRight size={18} />
@@ -40,20 +38,21 @@ export default function Sidebar({ tab, setTab, user, onLogout }) {
           </div>
         ) : (
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm shrink-0"
-                style={{ backgroundColor: PRIMARY, color: "white", fontFamily: SERIF }}
-              >
-                C
-              </div>
-              <span className="text-white text-lg font-semibold tracking-tight" style={{ fontFamily: SERIF }}>
-                CollectIQ
-              </span>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src="/logo-icon.png"
+                alt="CollectIQ Logo"
+                className="w-8 h-8 rounded-lg object-contain shrink-0 shadow-sm"
+              />
+              <img
+                src="/logo-full.png"
+                alt="CollectIQ"
+                className="h-8 object-contain max-w-[160px]"
+              />
             </div>
             <button
               onClick={() => setCollapsed(true)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
               title="Collapse sidebar"
             >
               <ChevronLeft size={18} />
@@ -65,19 +64,20 @@ export default function Sidebar({ tab, setTab, user, onLogout }) {
       {/* Mobile Header Row */}
       <div className="flex md:hidden items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center font-semibold text-xs shrink-0"
-            style={{ backgroundColor: PRIMARY, color: "white", fontFamily: SERIF }}
-          >
-            C
-          </div>
-          <span className="text-white text-base font-semibold tracking-tight" style={{ fontFamily: SERIF }}>
-            CollectIQ
-          </span>
+          <img
+            src="/logo-icon.png"
+            alt="CollectIQ Logo"
+            className="w-7 h-7 rounded-lg object-contain shrink-0"
+          />
+          <img
+            src="/logo-full.png"
+            alt="CollectIQ"
+            className="h-7 object-contain max-w-[140px]"
+          />
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="flex items-center justify-center p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          className="flex items-center justify-center p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           aria-label="Toggle menu"
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -93,9 +93,8 @@ export default function Sidebar({ tab, setTab, user, onLogout }) {
               key={item.key}
               onClick={() => setTab(item.key)}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors text-left ${
-                collapsed ? "justify-center px-0 py-2.5 h-10 w-10 mx-auto" : "px-3 py-2.5"
-              }`}
+              className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors text-left ${collapsed ? "justify-center px-0 py-2.5 h-10 w-10 mx-auto" : "px-3 py-2.5"
+                }`}
               style={{
                 backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "transparent",
                 color: isActive ? "white" : "rgba(255,255,255,0.55)",
