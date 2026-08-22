@@ -15,25 +15,27 @@ export default function CustomerDashboard({ invoices }) {
   }, [invoices]);
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-2.5 sm:gap-3">
       {byCustomer.map((c) => (
-        <div key={c.name} className="rounded-xl p-4 flex items-center justify-between gap-4" style={{ backgroundColor: PANEL, border: `1px solid ${BORDER}` }}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0" style={{ backgroundColor: PRIMARY_SOFT, color: PRIMARY }}>
+        <div key={c.name} className="rounded-xl p-3.5 sm:p-4 flex items-center justify-between gap-3" style={{ backgroundColor: PANEL, border: `1px solid ${BORDER}` }}>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0" style={{ backgroundColor: PRIMARY_SOFT, color: PRIMARY }}>
               {c.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-medium truncate" style={{ color: TEXT }}>{c.name}</div>
-              <div className="text-xs" style={{ color: SUBTLE }}>{c.invoices.length} invoices</div>
+              <div className="text-xs sm:text-sm font-semibold truncate" style={{ color: TEXT }}>{c.name}</div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[11px] sm:text-xs" style={{ color: SUBTLE }}>{c.invoices.length} invoices</span>
+                {c.high > 0 && (
+                  <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: HIGH }}>
+                    <AlertCircle size={11} /> {c.high} high
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-5 shrink-0">
-            {c.high > 0 && (
-              <span className="hidden sm:flex items-center gap-1 text-xs" style={{ color: HIGH }}>
-                <AlertCircle size={13} /> {c.high} high priority
-              </span>
-            )}
-            <span className="text-sm font-semibold tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
+          <div className="flex items-center shrink-0">
+            <span className="text-xs sm:text-sm font-semibold tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
               {money(c.outstanding)}
             </span>
           </div>

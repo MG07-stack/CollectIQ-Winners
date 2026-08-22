@@ -12,24 +12,24 @@ export default function AgingMeter({ invoices }) {
   const colors = ["#5B7A6C", "#C0872E", "#B23A2F", "#7A2A21"];
 
   return (
-    <div className="rounded-xl p-5" style={{ backgroundColor: PANEL, border: `1px solid ${BORDER}` }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold" style={{ color: TEXT }}>Aging exposure</h3>
-        <span className="text-xs" style={{ color: SUBTLE }}>{money(total)} unpaid</span>
+    <div className="rounded-xl p-3.5 sm:p-5" style={{ backgroundColor: PANEL, border: `1px solid ${BORDER}` }}>
+      <div className="flex items-center justify-between mb-3.5 sm:mb-4">
+        <h3 className="text-xs sm:text-sm font-semibold" style={{ color: TEXT }}>Aging exposure</h3>
+        <span className="text-[11px] sm:text-xs font-mono font-medium" style={{ color: SUBTLE }}>{money(total)} unpaid</span>
       </div>
-      <div className="flex w-full h-3 rounded-full overflow-hidden mb-4" style={{ backgroundColor: "#EEEDE8" }}>
+      <div className="flex w-full h-2.5 sm:h-3 rounded-full overflow-hidden mb-3.5 sm:mb-4" style={{ backgroundColor: "#EEEDE8" }}>
         {buckets.map((b, idx) => (
           <div key={b.key} style={{ width: `${(b.amount / total) * 100}%`, backgroundColor: colors[idx], transition: "width 0.4s ease" }} />
         ))}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
         {buckets.map((b, idx) => (
-          <div key={b.key} className="flex flex-col gap-1">
+          <div key={b.key} className="flex flex-col gap-0.5 sm:gap-1">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[idx] }} />
-              <span className="text-xs" style={{ color: SUBTLE }}>{b.label}</span>
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors[idx] }} />
+              <span className="text-[11px] sm:text-xs truncate" style={{ color: SUBTLE }}>{b.label}</span>
             </div>
-            <span className="text-sm font-semibold tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
+            <span className="text-xs sm:text-sm font-semibold tabular-nums" style={{ color: TEXT, fontFamily: MONO }}>
               {money(b.amount)}
             </span>
           </div>
