@@ -5,9 +5,12 @@ let invoicesStore = [...initialInvoices];
 let visitsStore = [...initialVisits];
 
 const DEMO_USERS = {
-  admin: { id: "u1", username: "admin", name: "Sarah Connor (Admin)", role: "Admin", token: "tok_admin_12345" },
-  agent1: { id: "u2", username: "agent1", name: "Alex Rivera (Agent 1)", role: "Field Agent", token: "tok_agent1_12345" },
-  agent2: { id: "u3", username: "agent2", name: "Marcus Vance (Agent 2)", role: "Field Agent", token: "tok_agent2_12345" },
+  admin: { id: "u1", username: "admin", email: "admin@collectiq.com", name: "Sarah Connor (Admin)", full_name: "Sarah Connor (Admin)", role: "Admin", token: "tok_admin_12345", password: "admin123" },
+  "admin@collectiq.com": { id: "u1", username: "admin", email: "admin@collectiq.com", name: "Sarah Connor (Admin)", full_name: "Sarah Connor (Admin)", role: "Admin", token: "tok_admin_12345", password: "admin123" },
+  agent1: { id: "u2", username: "agent1", email: "agent1@collectiq.com", name: "Alex Rivera (Agent 1)", full_name: "Alex Rivera (Agent 1)", role: "Field Agent", token: "tok_agent1_12345", password: "agent123" },
+  "agent1@collectiq.com": { id: "u2", username: "agent1", email: "agent1@collectiq.com", name: "Alex Rivera (Agent 1)", full_name: "Alex Rivera (Agent 1)", role: "Field Agent", token: "tok_agent1_12345", password: "agent123" },
+  agent2: { id: "u3", username: "agent2", email: "agent2@collectiq.com", name: "Marcus Vance (Agent 2)", full_name: "Marcus Vance (Agent 2)", role: "Field Agent", token: "tok_agent2_12345", password: "agent123" },
+  "agent2@collectiq.com": { id: "u3", username: "agent2", email: "agent2@collectiq.com", name: "Marcus Vance (Agent 2)", full_name: "Marcus Vance (Agent 2)", role: "Field Agent", token: "tok_agent2_12345", password: "agent123" },
 };
 
 let registeredUsers = { ...DEMO_USERS };
@@ -33,6 +36,21 @@ function getUserFromToken(req) {
 }
 
 export default async function handler(req, res) {
+  // Ensure res.status and res.json helpers exist for native Node http compatibility
+  if (typeof res.status !== "function") {
+    res.status = function (statusCode) {
+      this.statusCode = statusCode;
+      return this;
+    };
+  }
+  if (typeof res.json !== "function") {
+    res.json = function (data) {
+      this.setHeader("Content-Type", "application/json");
+      this.end(JSON.stringify(data));
+      return this;
+    };
+  }
+
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -47,21 +65,25 @@ export default async function handler(req, res) {
   // User Registration: POST /api/auth/register
   if (req.method === "POST" && (pathname === "/api/auth/register" || pathname === "/auth/register")) {
     const body = await parseJsonBody(req);
-    const { username, password, name, role } = body;
+    const rawUsername = body.username || body.email;
+    const rawName = body.name || body.full_name || rawUsername;
+    const { password, role } = body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: "Username and password are required." });
+    if (!rawUsername || !password) {
+      return res.status(400).json({ error: "Email/Username and password are required." });
     }
 
-    const cleanUsername = username.trim().toLowerCase();
+    const cleanUsername = rawUsername.trim().toLowerCase();
     if (registeredUsers[cleanUsername]) {
-      return res.status(400).json({ error: "Username is already taken. Please choose another." });
+      return res.status(400).json({ error: "An account with this email address already exists." });
     }
 
     const newUser = {
       id: `u_${Date.now()}`,
       username: cleanUsername,
-      name: name?.trim() || cleanUsername,
+      email: body.email || cleanUsername,
+      name: rawName?.trim() || cleanUsername,
+      full_name: rawName?.trim() || cleanUsername,
       role: role || "Field Agent",
       token: `tok_${cleanUsername}_${Date.now()}`,
       password: password,
@@ -97,22 +119,35 @@ export default async function handler(req, res) {
       }
     );
 
-    return res.status(201).json({ token: newUser.token, user: newUser });
+    return res.status(201).json({
+      token: newUser.token,
+      access_token: newUser.token,
+      token_type: "bearer",
+      user: newUser
+    });
   }
 
   // Authentication: POST /api/auth/login
   if (req.method === "POST" && (pathname === "/api/auth/login" || pathname === "/auth/login")) {
     const body = await parseJsonBody(req);
-    const cleanUsername = body?.username?.trim().toLowerCase();
-    const user = registeredUsers[cleanUsername];
+    const identifier = (body?.email || body?.username || "").trim().toLowerCase();
+    const inputPass = body?.password;
 
-    const isDemoPass = DEMO_USERS[cleanUsername] && body?.password === `${cleanUsername}123`;
-    const isCustomPass = user && user.password && body?.password === user.password;
+    const user = registeredUsers[identifier] || DEMO_USERS[identifier] ||
+      Object.values(registeredUsers).find((u) => u.email === identifier || u.username === identifier);
+
+    const isDemoPass = DEMO_USERS[identifier] && (inputPass === DEMO_USERS[identifier].password || inputPass === "admin123" || inputPass === "agent123");
+    const isCustomPass = user && user.password && inputPass === user.password;
 
     if (user && (isDemoPass || isCustomPass)) {
-      return res.status(200).json({ token: user.token, user });
+      return res.status(200).json({
+        token: user.token,
+        access_token: user.token,
+        token_type: "bearer",
+        user
+      });
     }
-    return res.status(401).json({ error: "Invalid username or password. Check credentials or register." });
+    return res.status(401).json({ error: "Invalid email or password. Please check your credentials or register." });
   }
 
   const currentUser = getUserFromToken(req);
@@ -321,9 +356,18 @@ export default async function handler(req, res) {
 
     visitsStore.unshift(newVisit);
 
-    if (body.invoiceId) {
+    let targetInvId = body.invoiceId;
+    if (!targetInvId && (body.customerId || body.customer)) {
+      const custClean = (body.customerId || body.customer || "").toLowerCase();
+      const openInv = invoicesStore.find(
+        (i) => (i.customerId.toLowerCase() === custClean || i.customer.toLowerCase() === custClean) && i.status !== "Paid"
+      );
+      if (openInv) targetInvId = openInv.id;
+    }
+
+    if (targetInvId) {
       invoicesStore = invoicesStore.map((inv) => {
-        if (inv.id !== body.invoiceId) return inv;
+        if (inv.id !== targetInvId) return inv;
         if (body.outcome === "Collected Cash" || visitAmount > 0) {
           if (visitAmount >= inv.amount) {
             return { ...inv, status: "Paid", priority: "Low", daysOverdue: 0 };
@@ -331,8 +375,8 @@ export default async function handler(req, res) {
             return { ...inv, status: "Partially Paid", amount: Math.max(0, inv.amount - visitAmount) };
           }
         }
-        if (body.outcome === "Promised Payment" && inv.status === "Overdue") {
-          return { ...inv, status: "Partially Paid" };
+        if (body.outcome === "Promised Payment" && (inv.status === "Overdue" || inv.status === "Outstanding")) {
+          return { ...inv, status: "Partially Paid", priority: "Medium" };
         }
         return inv;
       });

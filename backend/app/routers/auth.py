@@ -49,29 +49,42 @@ def register(body: UserRegisterRequest, db: Session = Depends(get_db)):
             detail="Password must be at least 6 characters long.",
         )
 
-    user = User(
-        email=clean_email,
-        full_name=body.full_name.strip(),
-        password_hash=get_password_hash(body.password),
-        role=body.role or "Field Agent",
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        user = User(
+            email=clean_email,
+            full_name=body.full_name.strip(),
+            password_hash=get_password_hash(body.password),
+            role=body.role or "Field Agent",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-    # Automatically seed initial starter data for the new user
-    seed_user_initial_data(db, user)
+        # Automatically seed initial starter data for the new user
+        try:
+            seed_user_initial_data(db, user)
+        except Exception as seed_err:
+            db.rollback()
+            print(f"[Warning] Seeding failed for user {user.id}: {seed_err}")
 
-    # Generate JWT token
-    token = create_access_token(data={"sub": str(user.id), "email": user.email, "role": user.role})
-    user_resp = build_user_response(user)
+        # Generate JWT token
+        token = create_access_token(data={"sub": str(user.id), "email": user.email, "role": user.role})
+        user_resp = build_user_response(user)
 
-    return TokenResponse(
-        access_token=token,
-        token_type="bearer",
-        token=token,
-        user=user_resp,
-    )
+        return TokenResponse(
+            access_token=token,
+            token_type="bearer",
+            token=token,
+            user=user_resp,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed due to a server error: {str(exc)}",
+        )
 
 
 @router.post("/api/auth/login", response_model=TokenResponse)

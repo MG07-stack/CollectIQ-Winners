@@ -9,10 +9,32 @@ export default defineConfig({
       "/api": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("error", (err, req, res) => {
+            if (res && !res.headersSent) {
+              res.writeHead(503, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({
+                error: "Backend Unavailable",
+                message: "Backend server is offline. Falling back to local authentication."
+              }));
+            }
+          });
+        }
       },
       "/auth": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("error", (err, req, res) => {
+            if (res && !res.headersSent) {
+              res.writeHead(503, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({
+                error: "Backend Unavailable",
+                message: "Backend server is offline. Falling back to local authentication."
+              }));
+            }
+          });
+        }
       },
     },
   },

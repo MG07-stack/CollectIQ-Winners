@@ -11,7 +11,8 @@ from app.services.seed_service import seed_demo_accounts_if_empty
 
 
 def test_auth_and_isolation():
-    # Ensure tables created and demo accounts seeded
+    # Ensure clean tables created and demo accounts seeded
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:

@@ -231,24 +231,32 @@ def record_customer_visit(
     db.add(visit)
 
     # If invoiceId is provided or payment made, update related invoice
+    target_inv = None
     if body.invoiceId:
         target_inv = db.query(Invoice).filter(
             Invoice.id == body.invoiceId,
             Invoice.user_id == current_user.id
         ).first()
+    if not target_inv:
+        target_inv = db.query(Invoice).filter(
+            (Invoice.customer_id == cust.id) | (Invoice.customer_name.ilike(cust.name)),
+            Invoice.user_id == current_user.id,
+            Invoice.status != "Paid"
+        ).first()
 
-        if target_inv:
-            visit.invoice_internal_id = target_inv.internal_id
-            if body.outcome == "Collected Cash" or visit_amount > 0:
-                if visit_amount >= target_inv.amount:
-                    target_inv.status = "Paid"
-                    target_inv.priority = "Low"
-                    target_inv.days_overdue = 0
-                else:
-                    target_inv.status = "Partially Paid"
-                    target_inv.amount = max(0.0, target_inv.amount - visit_amount)
-            elif body.outcome == "Promised Payment" and target_inv.status == "Overdue":
+    if target_inv:
+        visit.invoice_internal_id = target_inv.internal_id
+        visit.invoice_id = target_inv.id
+        if body.outcome == "Collected Cash" or visit_amount > 0:
+            if visit_amount >= target_inv.amount:
+                target_inv.status = "Paid"
+                target_inv.priority = "Low"
+                target_inv.days_overdue = 0
+            else:
                 target_inv.status = "Partially Paid"
+                target_inv.amount = max(0.0, target_inv.amount - visit_amount)
+        elif body.outcome == "Promised Payment" and (target_inv.status == "Overdue" or target_inv.status == "Outstanding"):
+            target_inv.status = "Partially Paid"
 
     db.commit()
     db.refresh(visit)
