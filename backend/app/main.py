@@ -12,6 +12,7 @@ from app.routers import (
     visits_router,
     dashboard_router,
     nfc_router,
+    reminders_router,
 )
 
 
@@ -76,3 +77,5 @@ app.include_router(invoices_router)
 app.include_router(visits_router)
 app.include_router(dashboard_router)
 app.include_router(nfc_router)
+app.include_router(reminders_router)
+

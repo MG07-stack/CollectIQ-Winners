@@ -15,12 +15,14 @@ import {
   ChevronUp,
   ShieldCheck,
   Building2,
+  Bell,
 } from "lucide-react";
 import { INK, PRIMARY, SERIF } from "../theme.js";
 
 const navItems = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "invoices", label: "Invoices", icon: FileText },
+  { key: "reminders", label: "Payment Reminders", icon: Bell },
   { key: "customers", label: "Counterparties", icon: Users },
   { key: "directory", label: "Credit Directory", icon: ShieldCheck },
   { key: "visits", label: "Field Visits", icon: MapPin },

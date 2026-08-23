@@ -4,7 +4,7 @@ import { PANEL, BORDER, TEXT, SUBTLE, PRIMARY, money } from "../theme.js";
 import PriorityBadge from "./PriorityBadge.jsx";
 import StatusPill from "./StatusPill.jsx";
 
-export default function InvoiceDrawer({ invoice, onClose }) {
+export default function InvoiceDrawer({ invoice, onClose, onOpenReminderModal }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-stretch justify-center sm:justify-end transition-opacity animate-in fade-in duration-200" style={{ backgroundColor: "rgba(18,23,43,0.5)" }} onClick={onClose}>
       <div
@@ -41,7 +41,14 @@ export default function InvoiceDrawer({ invoice, onClose }) {
           ))}
         </div>
         <div className="flex flex-col gap-2 mt-auto pt-4 shrink-0" style={{ borderTop: `1px solid ${BORDER}` }}>
-          <button className="w-full py-2.5 rounded-lg text-xs sm:text-sm font-medium text-white transition-opacity active:opacity-90" style={{ backgroundColor: PRIMARY }}>
+          <button
+            onClick={() => {
+              if (onOpenReminderModal) onOpenReminderModal(invoice);
+              if (onClose) onClose();
+            }}
+            className="w-full py-2.5 rounded-lg text-xs sm:text-sm font-medium text-white transition-opacity active:opacity-90 cursor-pointer"
+            style={{ backgroundColor: PRIMARY }}
+          >
             Send payment reminder
           </button>
           <button className="w-full py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors hover:bg-black/[0.02]" style={{ border: `1px solid ${BORDER}`, color: TEXT }}>

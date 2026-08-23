@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  Send,
 } from "lucide-react";
 import {
   PANEL,
@@ -43,6 +44,7 @@ export default function CustomerProfile({
   user,
   onBack,
   onVisitLogged,
+  onOpenReminderModal,
 }) {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -479,10 +481,10 @@ export default function CustomerProfile({
           </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
             <button
               onClick={() => setShowInvoices(!showInvoices)}
-              className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 border transition-all active:scale-98 shadow-xs cursor-pointer"
+              className="w-full py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 border transition-all active:scale-98 shadow-xs cursor-pointer"
               style={{ borderColor: BORDER, backgroundColor: CANVAS, color: TEXT }}
             >
               <FileText size={16} style={{ color: PRIMARY }} />
@@ -491,8 +493,26 @@ export default function CustomerProfile({
             </button>
 
             <button
+              onClick={() => {
+                if (onOpenReminderModal) {
+                  const firstUnpaid = customer.invoices?.find((i) => i.status !== "Paid") || customer.invoices?.[0] || {
+                    id: `INV-${customer.id}`,
+                    amount: customer.outstanding || 50000,
+                    customer: customer.name,
+                    buyerId: customer.id,
+                  };
+                  onOpenReminderModal(firstUnpaid, customer);
+                }
+              }}
+              className="w-full py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold text-emerald-900 bg-emerald-50 border border-emerald-200 flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-xs cursor-pointer hover:bg-emerald-100"
+            >
+              <Send size={15} className="text-emerald-700" />
+              <span>Remind</span>
+            </button>
+
+            <button
               onClick={() => setShowPaymentModal(true)}
-              className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all active:scale-98 shadow-sm cursor-pointer"
+              className="w-full py-3 px-3 rounded-xl text-xs sm:text-sm font-semibold text-white flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-sm cursor-pointer"
               style={{ backgroundColor: PRIMARY }}
             >
               <CreditCard size={16} />

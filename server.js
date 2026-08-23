@@ -16,6 +16,42 @@ const PORT = process.env.PORT || 5000;
 // In-memory data store
 let transactionsStore = [...TRANSACTIONS_LIST];
 let visitsStore = [...initialVisits];
+let remindersStore = [
+  {
+    id: "REM-1001",
+    invoiceId: "INV-2026-102",
+    sellerId: "COMP001",
+    sellerName: "Apex FMCG Wholesalers",
+    buyerId: "COMP009",
+    buyerName: "Gupta Kirana & General Store",
+    amount: 68000,
+    channel: "WhatsApp",
+    recipientPhone: "+91 98111 22334",
+    recipientEmail: "guptakirana@collectiq.com",
+    template: "Urgent Overdue Notice",
+    message: "Reminder: Invoice INV-2026-102 of ₹68,000 is 22 days overdue. Please clear payment via CollectIQ UPI link.",
+    sentAt: "2026-08-22T10:30:00.000Z",
+    status: "Delivered",
+    direction: "OUTGOING",
+  },
+  {
+    id: "REM-1002",
+    invoiceId: "INV-2026-105",
+    sellerId: "COMP006",
+    sellerName: "National Agro Commodities",
+    buyerId: "COMP001",
+    buyerName: "Apex FMCG Wholesalers",
+    amount: 520000,
+    channel: "Email",
+    recipientPhone: "+91 98111 22334",
+    recipientEmail: "apex@collectiq.com",
+    template: "Upcoming Payment Reminder",
+    message: "Payment due in 12 days for Invoice INV-2026-105 (₹5,20,000) from National Agro Commodities.",
+    sentAt: "2026-08-21T14:15:00.000Z",
+    status: "Read",
+    direction: "INCOMING",
+  },
+];
 
 const DEMO_USERS = {
   admin: {
@@ -475,6 +511,46 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify(summary));
+  }
+
+  // Payment Reminders: GET & POST /api/reminders
+  if (pathname === "/api/reminders" || pathname === "/reminders") {
+    if (req.method === "GET") {
+      if (currentUser.role === "Admin") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify(remindersStore));
+      }
+      const relevant = remindersStore.filter(
+        (r) => r.sellerId === userCompId || r.buyerId === userCompId
+      );
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(relevant));
+    }
+
+    if (req.method === "POST") {
+      const body = await parseJsonBody(req);
+      const newRem = {
+        id: `REM-${Date.now()}`,
+        invoiceId: body.invoiceId || "INV-GENERAL",
+        sellerId: body.sellerId || userCompId,
+        sellerName: body.sellerName || currentUser.name || "My Business",
+        buyerId: body.buyerId || body.customerId || "COMP009",
+        buyerName: body.buyerName || body.customerName || "Counterparty",
+        amount: Number(body.amount) || 0,
+        channel: body.channel || "WhatsApp",
+        recipientPhone: body.recipientPhone || "+91 98765 43210",
+        recipientEmail: body.recipientEmail || "contact@counterparty.com",
+        template: body.template || "Standard Payment Request",
+        message: body.message || "Payment reminder notice from CollectIQ",
+        sentAt: new Date().toISOString(),
+        status: "Sent",
+        direction: body.sellerId === userCompId ? "OUTGOING" : "INCOMING",
+      };
+      remindersStore.unshift(newRem);
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(newRem));
+    }
   }
 
   // 404 Fallback

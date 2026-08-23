@@ -15,6 +15,59 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 
 let mockTransactionsStore = [...TRANSACTIONS_LIST];
 let mockVisitsStore = [...initialVisits];
+let mockRemindersStore = [
+  {
+    id: "REM-1001",
+    invoiceId: "INV-2026-102",
+    sellerId: "COMP001",
+    sellerName: "Apex FMCG Wholesalers",
+    buyerId: "COMP009",
+    buyerName: "Gupta Kirana & General Store",
+    amount: 68000,
+    channel: "WhatsApp",
+    recipientPhone: "+91 98111 22334",
+    recipientEmail: "guptakirana@collectiq.com",
+    template: "Urgent Overdue Notice",
+    message: "Reminder: Invoice INV-2026-102 of ₹68,000 is 22 days overdue. Please clear payment via CollectIQ UPI link.",
+    sentAt: "2026-08-22T10:30:00.000Z",
+    status: "Delivered",
+    direction: "OUTGOING",
+  },
+  {
+    id: "REM-1002",
+    invoiceId: "INV-2026-105",
+    sellerId: "COMP006",
+    sellerName: "National Agro Commodities",
+    buyerId: "COMP001",
+    buyerName: "Apex FMCG Wholesalers",
+    amount: 520000,
+    channel: "Email",
+    recipientPhone: "+91 98111 22334",
+    recipientEmail: "apex@collectiq.com",
+    template: "Upcoming Payment Reminder",
+    message: "Payment due in 12 days for Invoice INV-2026-105 (₹5,20,000) from National Agro Commodities.",
+    sentAt: "2026-08-21T14:15:00.000Z",
+    status: "Read",
+    direction: "INCOMING",
+  },
+  {
+    id: "REM-1003",
+    invoiceId: "INV-2026-104",
+    sellerId: "COMP001",
+    sellerName: "Apex FMCG Wholesalers",
+    buyerId: "COMP015",
+    buyerName: "Annapurna Sweet Shop & Bakery",
+    amount: 95000,
+    channel: "SMS",
+    recipientPhone: "+91 98450 11223",
+    recipientEmail: "annapurna@collectiq.com",
+    template: "Standard Payment Request",
+    message: "CollectIQ Notice: Payment of ₹95,000 for Invoice INV-2026-104 is 8 days past due. Pay online at https://collectiq.app/pay/INV-2026-104",
+    sentAt: "2026-08-20T09:00:00.000Z",
+    status: "Delivered",
+    direction: "OUTGOING",
+  },
+];
 
 // Generate Demo Accounts dictionary for all 20 Companies + Admin
 const MOCK_DEMO_USERS = {
@@ -394,6 +447,39 @@ async function request(path, { method = "GET", token, body } = {}) {
       const inv = mockTransactionsStore.find((i) => i.buyerId === customer.id || i.sellerId === customer.id);
       return { tagId: "COMP001", customerId: customer.id, customer: customer.name, invoice: inv };
     }
+
+    // Payment Reminders API Endpoint
+    if (path.includes("/reminders")) {
+      const userCompId = currentUser.companyId || currentUser.id;
+      if (method === "POST" && body) {
+        const newRem = {
+          id: `REM-${Date.now()}`,
+          invoiceId: body.invoiceId || "INV-GENERAL",
+          sellerId: body.sellerId || userCompId,
+          sellerName: body.sellerName || currentUser.name || "My Business",
+          buyerId: body.buyerId || body.customerId || "COMP009",
+          buyerName: body.buyerName || body.customerName || "Counterparty",
+          amount: Number(body.amount) || 0,
+          channel: body.channel || "WhatsApp",
+          recipientPhone: body.recipientPhone || "+91 98765 43210",
+          recipientEmail: body.recipientEmail || "contact@counterparty.com",
+          template: body.template || "Standard Payment Request",
+          message: body.message || "Payment reminder from CollectIQ",
+          sentAt: new Date().toISOString(),
+          status: "Sent",
+          direction: body.sellerId === userCompId ? "OUTGOING" : "INCOMING",
+        };
+        mockRemindersStore.unshift(newRem);
+        return newRem;
+      }
+
+      if (currentUser.role === "Admin") {
+        return mockRemindersStore;
+      }
+      return mockRemindersStore.filter(
+        (r) => r.sellerId === userCompId || r.buyerId === userCompId
+      );
+    }
   }
 
   let data;
@@ -511,3 +597,13 @@ export async function searchCompanies(query = "", token) {
 export async function getCompanyCreditProfile(companyId, token) {
   return request(`/api/companies/${encodeURIComponent(companyId)}/credit-profile`, { token });
 }
+
+// Payment Reminders API
+export async function getReminders(token) {
+  return request("/api/reminders", { token });
+}
+
+export async function sendPaymentReminder(token, reminderData) {
+  return request("/api/reminders", { method: "POST", token, body: reminderData });
+}
+

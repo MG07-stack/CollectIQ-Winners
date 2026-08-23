@@ -15,7 +15,7 @@ const columns = [
   { key: "priority", label: "Priority" },
 ];
 
-export default function InvoiceTable({ invoices = [] }) {
+export default function InvoiceTable({ invoices = [], onOpenReminderModal }) {
   const [directionTab, setDirectionTab] = useState("ALL"); // ALL | RECEIVABLE | PAYABLE
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("All");
@@ -319,7 +319,13 @@ export default function InvoiceTable({ invoices = [] }) {
         )}
       </div>
 
-      {selected && <InvoiceDrawer invoice={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <InvoiceDrawer
+          invoice={selected}
+          onClose={() => setSelected(null)}
+          onOpenReminderModal={onOpenReminderModal}
+        />
+      )}
     </div>
   );
 }

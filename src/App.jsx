@@ -24,7 +24,7 @@ import {
   SERIF,
   money,
 } from "./theme.js";
-import { getInvoices, getVisits, postVisit, getMe, logout as apiLogout } from "./api.js";
+import { getInvoices, getVisits, postVisit, getMe, logout as apiLogout, getReminders, sendPaymentReminder } from "./api.js";
 
 import Login from "./components/Login.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -39,6 +39,8 @@ import VisitLog from "./components/VisitLog.jsx";
 import CustomerProfile from "./components/CustomerProfile.jsx";
 import NfcProgrammerModal from "./components/NfcProgrammerModal.jsx";
 import CompanySearch from "./components/CompanySearch.jsx";
+import PaymentReminders from "./components/PaymentReminders.jsx";
+import SendReminderModal from "./components/SendReminderModal.jsx";
 
 const SESSION_KEY = "collectiq_session";
 
@@ -47,12 +49,17 @@ export default function App() {
   const [tab, setTab] = useState("overview");
   const [invoices, setInvoices] = useState([]);
   const [visits, setVisits] = useState([]);
+  const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
 
   const [routeCustomerId, setRouteCustomerId] = useState(null);
   const [pendingNfcCustomer, setPendingNfcCustomer] = useState(null);
   const [nfcModalOpen, setNfcModalOpen] = useState(false);
+
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [targetReminderInvoice, setTargetReminderInvoice] = useState(null);
+  const [targetReminderCustomer, setTargetReminderCustomer] = useState(null);
 
   // Parse URL path for /customer/:customerId
   const checkUrlRoute = useCallback(() => {
@@ -108,12 +115,14 @@ export default function App() {
     setLoading(true);
     setLoadError("");
     try {
-      const [invoiceData, visitData] = await Promise.all([
+      const [invoiceData, visitData, reminderData] = await Promise.all([
         getInvoices(token),
         getVisits(token),
+        getReminders(token).catch(() => []),
       ]);
       setInvoices(invoiceData || []);
       setVisits(visitData || []);
+      setReminders(reminderData || []);
     } catch (err) {
       if (err.status === 401) {
         handleLogout();
@@ -188,6 +197,19 @@ export default function App() {
     if (session?.token) loadData(session.token);
   }
 
+  function handleOpenReminderModal(invoice = null, customer = null) {
+    setTargetReminderInvoice(invoice);
+    setTargetReminderCustomer(customer);
+    setReminderModalOpen(true);
+  }
+
+  async function handleSendReminder(payload) {
+    if (!session?.token) return;
+    const result = await sendPaymentReminder(session.token, payload);
+    setReminders((prev) => [result, ...prev]);
+    return result;
+  }
+
   // If unauthenticated, render Login / Register page
   if (!session) {
     return <Login onLogin={handleLogin} />;
@@ -202,6 +224,7 @@ export default function App() {
         user={session.user}
         onBack={handleBackToDashboard}
         onVisitLogged={handleVisitLogged}
+        onOpenReminderModal={handleOpenReminderModal}
       />
     );
   }
@@ -248,6 +271,7 @@ export default function App() {
             >
               {tab === "overview" && "Financial & Cash Flow Overview"}
               {tab === "invoices" && "Invoices & Transactions"}
+              {tab === "reminders" && "Payment Reminders Hub"}
               {tab === "customers" && "Counterparty Directory"}
               {tab === "directory" && "B2B Credit Directory"}
               {tab === "visits" && "Field Audit & Visits"}
@@ -255,6 +279,7 @@ export default function App() {
             <p className="text-xs sm:text-sm mt-0.5 sm:mt-1" style={{ color: SUBTLE }}>
               {tab === "overview" && "Real-time receivables to receive, payables to pay, and net market liquidity."}
               {tab === "invoices" && "Triage all inward receivables and outward payables."}
+              {tab === "reminders" && "Track pending payables, dispatch payment reminders to counterparties, and manage auto schedules."}
               {tab === "customers" && "Balances grouped by customer and supplier counterparties."}
               {tab === "directory" && "Search any Indian company's CollectIQ Trust Score and total market balance."}
               {tab === "visits" && "Record field audit visits and on-site payments."}
@@ -457,12 +482,29 @@ export default function App() {
                     invoices={invoices
                       .filter((i) => i.priority === "High" && i.status !== "Paid")
                       .slice(0, 6)}
+                    onOpenReminderModal={handleOpenReminderModal}
                   />
                 </div>
               </div>
             )}
 
-            {tab === "invoices" && <InvoiceTable invoices={invoices} />}
+            {tab === "invoices" && (
+              <InvoiceTable
+                invoices={invoices}
+                onOpenReminderModal={handleOpenReminderModal}
+              />
+            )}
+
+            {tab === "reminders" && (
+              <PaymentReminders
+                invoices={invoices}
+                reminders={reminders}
+                user={session.user}
+                onOpenReminderModal={handleOpenReminderModal}
+                onRefresh={() => loadData(session.token)}
+              />
+            )}
+
             {tab === "customers" && (
               <CustomerDashboard
                 invoices={invoices}
@@ -503,6 +545,16 @@ export default function App() {
         isOpen={nfcModalOpen}
         onClose={() => setNfcModalOpen(false)}
         onSimulateTap={navigateToCustomer}
+      />
+
+      {/* Payment Reminder Dispatch Modal */}
+      <SendReminderModal
+        isOpen={reminderModalOpen}
+        onClose={() => setReminderModalOpen(false)}
+        invoice={targetReminderInvoice}
+        counterparty={targetReminderCustomer}
+        user={session.user}
+        onSendReminder={handleSendReminder}
       />
     </div>
   );
