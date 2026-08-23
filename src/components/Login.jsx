@@ -25,6 +25,7 @@ import {
   SERIF,
 } from "../theme.js";
 import { login, register } from "../api.js";
+import { COMPANIES_LIST } from "../mockData.js";
 
 export default function Login({ onLogin, initialMode = "signin" }) {
   const [isRegistering, setIsRegistering] = useState(initialMode === "register");
@@ -382,40 +383,78 @@ export default function Login({ onLogin, initialMode = "signin" }) {
         {/* 1-Click Demo Accounts */}
         {!isRegistering && (
           <div
-            className="flex flex-col gap-2 pt-3 border-t"
+            className="flex flex-col gap-2.5 pt-3 border-t"
             style={{ borderColor: BORDER }}
           >
             <span
               className="text-[11px] font-semibold uppercase tracking-wider text-center"
               style={{ color: SUBTLE }}
             >
-              Quick 1-Click Demo Accounts
+              1-Click Demo Accounts (Wholesalers & Retailers)
             </span>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
                 onClick={() => fillDemo("admin@collectiq.com", "admin123")}
-                className="text-[11px] font-medium py-1.5 px-2 rounded-xl border transition-all hover:bg-black/5 flex items-center justify-center gap-1 cursor-pointer"
+                className="text-[11px] font-medium py-2 px-2.5 rounded-xl border transition-all hover:bg-black/5 flex items-center justify-center gap-1.5 cursor-pointer"
                 style={{ borderColor: BORDER, color: TEXT, backgroundColor: CANVAS }}
               >
-                <ShieldCheck size={12} style={{ color: PRIMARY }} /> Admin
+                <ShieldCheck size={13} style={{ color: PRIMARY }} />
+                <span>Admin (Full Network)</span>
               </button>
               <button
                 type="button"
-                onClick={() => fillDemo("agent1@collectiq.com", "agent123")}
-                className="text-[11px] font-medium py-1.5 px-2 rounded-xl border transition-all hover:bg-black/5 flex items-center justify-center gap-1 cursor-pointer"
+                onClick={() => fillDemo("apex@collectiq.com", "admin123")}
+                className="text-[11px] font-medium py-2 px-2.5 rounded-xl border transition-all hover:bg-black/5 flex items-center justify-center gap-1.5 cursor-pointer"
                 style={{ borderColor: BORDER, color: TEXT, backgroundColor: CANVAS }}
               >
-                <UserCheck size={12} style={{ color: PRIMARY }} /> Agent 1
+                <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                <span>Apex FMCG (Wholesaler)</span>
               </button>
               <button
                 type="button"
-                onClick={() => fillDemo("agent2@collectiq.com", "agent123")}
-                className="text-[11px] font-medium py-1.5 px-2 rounded-xl border transition-all hover:bg-black/5 flex items-center justify-center gap-1 cursor-pointer"
+                onClick={() => fillDemo("guptakirana@collectiq.com", "admin123")}
+                className="text-[11px] font-medium py-2 px-2.5 rounded-xl border transition-all hover:bg-black/5 flex items-center justify-center gap-1.5 cursor-pointer"
                 style={{ borderColor: BORDER, color: TEXT, backgroundColor: CANVAS }}
               >
-                <UserCheck size={12} style={{ color: PRIMARY }} /> Agent 2
+                <span className="w-2 h-2 rounded-full bg-blue-600" />
+                <span>Gupta Kirana (Retailer)</span>
               </button>
+              <button
+                type="button"
+                onClick={() => fillDemo("bharat@collectiq.com", "admin123")}
+                className="text-[11px] font-medium py-2 px-2.5 rounded-xl border transition-all hover:bg-black/5 flex items-center justify-center gap-1.5 cursor-pointer"
+                style={{ borderColor: BORDER, color: TEXT, backgroundColor: CANVAS }}
+              >
+                <span className="w-2 h-2 rounded-full bg-purple-600" />
+                <span>Bharat Digital (Distributor)</span>
+              </button>
+            </div>
+
+            {/* Quick Switcher for all 20 Companies */}
+            <div className="flex flex-col gap-1 mt-1">
+              <label className="text-[10px] font-semibold text-gray-500">
+                Or select any of the 20 Indian businesses:
+              </label>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    fillDemo(e.target.value, "admin123");
+                  }
+                }}
+                defaultValue=""
+                className="text-xs rounded-xl p-2 outline-none cursor-pointer border"
+                style={{ backgroundColor: CANVAS, borderColor: BORDER, color: TEXT }}
+              >
+                <option value="" disabled>
+                  Choose a company to test (1-20)...
+                </option>
+                {COMPANIES_LIST.map((c) => (
+                  <option key={c.id} value={c.email}>
+                    {c.name} ({c.type} • {c.scale})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         )}

@@ -13,13 +13,16 @@ import {
   Shield,
   Mail,
   ChevronUp,
+  ShieldCheck,
+  Building2,
 } from "lucide-react";
 import { INK, PRIMARY, SERIF } from "../theme.js";
 
 const navItems = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "invoices", label: "Invoices", icon: FileText },
-  { key: "customers", label: "Customers", icon: Users },
+  { key: "customers", label: "Counterparties", icon: Users },
+  { key: "directory", label: "Credit Directory", icon: ShieldCheck },
   { key: "visits", label: "Field Visits", icon: MapPin },
 ];
 

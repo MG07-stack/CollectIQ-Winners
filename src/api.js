@@ -1,39 +1,62 @@
-import { invoices as initialInvoices, mockVisits as initialVisits, CUSTOMERS_LIST, findCustomer } from "./mockData.js";
+import {
+  COMPANIES_LIST,
+  TRANSACTIONS_LIST,
+  invoices as initialInvoices,
+  mockVisits as initialVisits,
+  CUSTOMERS_LIST,
+  findCustomer,
+  findCompany,
+  getTransactionsForCompany,
+  getCompanyPublicCreditProfile,
+  searchCompanies as searchCompaniesEngine,
+} from "./mockData.js";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-const mockInvoicesStore = [...initialInvoices];
-const mockVisitsStore = [...initialVisits];
+let mockTransactionsStore = [...TRANSACTIONS_LIST];
+let mockVisitsStore = [...initialVisits];
 
+// Generate Demo Accounts dictionary for all 20 Companies + Admin
 const MOCK_DEMO_USERS = {
   "admin@collectiq.com": {
-    id: "u1",
+    id: "u_admin",
     username: "admin",
     email: "admin@collectiq.com",
-    name: "Sarah Connor (Admin)",
-    full_name: "Sarah Connor (Admin)",
+    name: "Platform Administrator (Full Network)",
+    full_name: "Platform Administrator (Full Network)",
     role: "Admin",
     token: "tok_admin_12345",
-  },
-  "agent1@collectiq.com": {
-    id: "u2",
-    username: "agent1",
-    email: "agent1@collectiq.com",
-    name: "Alex Rivera (Agent 1)",
-    full_name: "Alex Rivera (Agent 1)",
-    role: "Field Agent",
-    token: "tok_agent1_12345",
-  },
-  "agent2@collectiq.com": {
-    id: "u3",
-    username: "agent2",
-    email: "agent2@collectiq.com",
-    name: "Marcus Vance (Agent 2)",
-    full_name: "Marcus Vance (Agent 2)",
-    role: "Field Agent",
-    token: "tok_agent2_12345",
+    companyId: null,
   },
 };
+
+// Add all 20 companies to demo users
+COMPANIES_LIST.forEach((comp) => {
+  const userObj = {
+    id: comp.id,
+    companyId: comp.id,
+    username: comp.loginUser,
+    email: comp.email,
+    name: comp.name,
+    full_name: `${comp.name} (${comp.type})`,
+    role: comp.type === "Wholesaler" || comp.type === "Manufacturer" ? "Wholesaler Admin" : "Retailer Admin",
+    type: comp.type,
+    scale: comp.scale,
+    category: comp.category,
+    token: `tok_${comp.loginUser}_12345`,
+    creditScore: comp.creditScore,
+    creditTier: comp.creditTier,
+  };
+  MOCK_DEMO_USERS[comp.email.toLowerCase()] = userObj;
+  MOCK_DEMO_USERS[comp.loginUser.toLowerCase()] = userObj;
+});
+
+// Helper to determine active logged-in user from token
+function getLocalUserFromToken(token) {
+  if (!token) return MOCK_DEMO_USERS["admin@collectiq.com"];
+  const user = Object.values(MOCK_DEMO_USERS).find((u) => u.token === token);
+  return user || MOCK_DEMO_USERS["admin@collectiq.com"];
+}
 
 async function request(path, { method = "GET", token, body } = {}) {
   const headers = { "Content-Type": "application/json" };
@@ -58,6 +81,9 @@ async function request(path, { method = "GET", token, body } = {}) {
 
   // Handle network failure or 5xx proxy connection error gracefully with seamless local fallback
   if (networkFailed || (res && res.status >= 500)) {
+    const currentUser = getLocalUserFromToken(token);
+
+    // Authentication: Login
     if (path.includes("/auth/login") && body) {
       const emailClean = (body.email || body.username || "").trim().toLowerCase();
       const matched =
@@ -69,12 +95,13 @@ async function request(path, { method = "GET", token, body } = {}) {
           username: emailClean.split("@")[0],
           name: emailClean.split("@")[0],
           full_name: emailClean.split("@")[0],
-          role: "Field Agent",
+          role: "Retailer Admin",
           token: `tok_${emailClean}_${Date.now()}`,
         };
       return { access_token: matched.token, token: matched.token, token_type: "bearer", user: matched };
     }
 
+    // Authentication: Register
     if (path.includes("/auth/register") && body) {
       const emailClean = (body.email || body.username || "").trim().toLowerCase();
       const fullName = (body.full_name || body.name || emailClean.split("@")[0]).trim();
@@ -84,24 +111,84 @@ async function request(path, { method = "GET", token, body } = {}) {
         username: emailClean.split("@")[0],
         name: fullName,
         full_name: fullName,
-        role: body.role || "Field Agent",
+        role: body.role || "Business Owner",
         token: `tok_${emailClean}_${Date.now()}`,
       };
+      MOCK_DEMO_USERS[emailClean] = user;
       return { access_token: user.token, token: user.token, token_type: "bearer", user };
     }
 
     if (path.includes("/auth/me")) {
-      return MOCK_DEMO_USERS["admin@collectiq.com"];
+      return currentUser;
     }
 
+    // B2B Credit Directory Search (Privacy Preserving)
+    if (path.includes("/companies/search")) {
+      const urlParams = new URLSearchParams(path.split("?")[1] || "");
+      const q = urlParams.get("q") || "";
+      return searchCompaniesEngine(q);
+    }
+
+    // Single Company Public Credit Profile
+    const companyCreditMatch = path.match(/\/companies\/([^\/\?]+)\/credit-profile/);
+    if (companyCreditMatch) {
+      const compId = decodeURIComponent(companyCreditMatch[1]);
+      const profile = getCompanyPublicCreditProfile(compId);
+      if (!profile) {
+        throw new Error("Company not found in B2B Credit Registry.");
+      }
+      return profile;
+    }
+
+    // Invoices / Transactions (Receivables vs Payables)
     if (path.includes("/invoices")) {
-      return mockInvoicesStore;
+      if (currentUser.role === "Admin") {
+        return mockTransactionsStore.map((t) => ({
+          ...t,
+          customerId: t.buyerId,
+          customer: t.buyerName,
+          sellerId: t.sellerId,
+          sellerName: t.sellerName,
+          buyerId: t.buyerId,
+          buyerName: t.buyerName,
+          assignedTo: t.sellerName,
+          direction: "RECEIVABLE",
+          issued: t.issuedDate,
+          due: t.dueDate,
+        }));
+      }
+
+      // Filter transactions where user is Seller (Receivable) OR Buyer (Payable)
+      const userCompId = currentUser.companyId || currentUser.id;
+      const relevant = mockTransactionsStore.filter(
+        (t) => t.sellerId === userCompId || t.buyerId === userCompId
+      );
+
+      return relevant.map((t) => {
+        const isReceivable = t.sellerId === userCompId;
+        return {
+          ...t,
+          customerId: isReceivable ? t.buyerId : t.sellerId,
+          customer: isReceivable ? t.buyerName : t.sellerName,
+          counterpartyId: isReceivable ? t.buyerId : t.sellerId,
+          counterpartyName: isReceivable ? t.buyerName : t.sellerName,
+          sellerId: t.sellerId,
+          sellerName: t.sellerName,
+          buyerId: t.buyerId,
+          buyerName: t.buyerName,
+          assignedTo: isReceivable ? t.sellerName : t.buyerName,
+          direction: isReceivable ? "RECEIVABLE" : "PAYABLE",
+          issued: t.issuedDate,
+          due: t.dueDate,
+        };
+      });
     }
 
+    // Post Visit / Record Cash & Cheque Payment
     if ((path.includes("/visits") || path.includes("/visit")) && method === "POST" && body) {
-      const matchedCust = findCustomer(body.customerId || body.customer);
-      const custId = matchedCust ? matchedCust.id : (body.customerId || "CUST001");
-      const custName = matchedCust ? matchedCust.name : (body.customer || "Sharma Traders");
+      const matchedCust = findCompany(body.customerId || body.customer);
+      const custId = matchedCust ? matchedCust.id : (body.customerId || "COMP009");
+      const custName = matchedCust ? matchedCust.name : (body.customer || "Gupta Kirana & General Store");
       const visitAmount = Number(body.amount) || 0;
       const nowIso = new Date().toISOString();
 
@@ -112,7 +199,7 @@ async function request(path, { method = "GET", token, body } = {}) {
         outcome: body.outcome || "Contacted Customer",
         date: nowIso.split("T")[0],
         visit_time: nowIso,
-        agent: body.agent || "Field Agent",
+        agent: currentUser.name || body.agent || "Field Representative",
         amount: visitAmount,
         notes: body.notes || "",
         type: body.type || (path.includes("/customers/") ? "NFC_TAP" : "FIELD_VISIT"),
@@ -120,27 +207,27 @@ async function request(path, { method = "GET", token, body } = {}) {
 
       mockVisitsStore.unshift(newVisit);
 
-      // Update matching invoice in mock store
+      // Update matching invoice in transactions store
       let targetInvIndex = -1;
       if (body.invoiceId) {
-        targetInvIndex = mockInvoicesStore.findIndex((i) => i.id === body.invoiceId);
+        targetInvIndex = mockTransactionsStore.findIndex((i) => i.id === body.invoiceId);
       }
       if (targetInvIndex === -1) {
-        targetInvIndex = mockInvoicesStore.findIndex(
-          (i) => (i.customerId === custId || i.customer.toLowerCase() === custName.toLowerCase()) && i.status !== "Paid"
+        targetInvIndex = mockTransactionsStore.findIndex(
+          (i) => (i.buyerId === custId || i.sellerId === custId || i.buyerName.toLowerCase() === custName.toLowerCase()) && i.status !== "Paid"
         );
       }
 
       if (targetInvIndex !== -1) {
-        const inv = mockInvoicesStore[targetInvIndex];
+        const inv = mockTransactionsStore[targetInvIndex];
         if (body.outcome === "Collected Cash" || visitAmount > 0) {
           if (visitAmount >= inv.amount) {
-            mockInvoicesStore[targetInvIndex] = { ...inv, status: "Paid", priority: "Low", daysOverdue: 0 };
+            mockTransactionsStore[targetInvIndex] = { ...inv, status: "Paid", priority: "Low", daysOverdue: 0 };
           } else {
-            mockInvoicesStore[targetInvIndex] = { ...inv, status: "Partially Paid", amount: Math.max(0, inv.amount - visitAmount) };
+            mockTransactionsStore[targetInvIndex] = { ...inv, status: "Partially Paid", amount: Math.max(0, inv.amount - visitAmount) };
           }
         } else if (body.outcome === "Promised Payment" && (inv.status === "Overdue" || inv.status === "Outstanding")) {
-          mockInvoicesStore[targetInvIndex] = { ...inv, status: "Partially Paid", priority: "Medium" };
+          mockTransactionsStore[targetInvIndex] = { ...inv, status: "Partially Paid", priority: "Medium" };
         }
       }
 
@@ -161,39 +248,73 @@ async function request(path, { method = "GET", token, body } = {}) {
       return mockVisitsStore;
     }
 
+    // Customers / Counterparties List & Single Profile
     if (path.includes("/customers")) {
       const singleMatch = path.match(/\/customers\/([^\/\?]+)$/);
       if (singleMatch) {
         const cId = decodeURIComponent(singleMatch[1]);
-        const cust = findCustomer(cId) || CUSTOMERS_LIST[0];
-        const custInvoices = mockInvoicesStore.filter((i) => i.customerId === cust.id || i.customer.toLowerCase() === cust.name.toLowerCase());
-        const unpaid = custInvoices.filter((i) => i.status !== "Paid");
-        const outstanding = unpaid.reduce((s, i) => s + i.amount, 0);
-        const overdue = unpaid.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
-        const lastV = mockVisitsStore.find((v) => v.customerId === cust.id || v.customer.toLowerCase() === cust.name.toLowerCase());
+        const comp = findCompany(cId) || COMPANIES_LIST[0];
+        const custInvoices = mockTransactionsStore
+          .filter((t) => t.buyerId === comp.id || t.sellerId === comp.id)
+          .map((t) => ({
+            ...t,
+            customerId: t.buyerId === comp.id ? t.sellerId : t.buyerId,
+            customer: t.buyerId === comp.id ? t.sellerName : t.buyerName,
+            direction: t.buyerId === comp.id ? "PAYABLE" : "RECEIVABLE",
+            issued: t.issuedDate,
+            due: t.dueDate,
+          }));
+
+        const unpaidReceivables = custInvoices.filter((i) => i.direction === "RECEIVABLE" && i.status !== "Paid");
+        const outstanding = unpaidReceivables.reduce((s, i) => s + i.amount, 0);
+        const overdue = unpaidReceivables.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
+
+        const lastV = mockVisitsStore.find((v) => v.customerId === comp.id || v.customer.toLowerCase() === comp.name.toLowerCase());
+        const publicCredit = getCompanyPublicCreditProfile(comp.id);
+
         return {
-          id: cust.id,
-          name: cust.name,
-          address: cust.address,
-          phone: cust.phone,
-          agent: cust.agent,
+          id: comp.id,
+          name: comp.name,
+          tradeName: comp.tradeName,
+          address: comp.address,
+          phone: comp.phone,
+          email: comp.email,
+          agent: comp.contactPerson,
+          type: comp.type,
+          scale: comp.scale,
+          category: comp.category,
+          creditScore: comp.creditScore,
+          creditTier: comp.creditTier,
+          onTimePaymentRate: comp.onTimePaymentRate,
+          avgSettlementDays: comp.avgSettlementDays,
           outstanding,
           overdue,
-          high: unpaid.filter((i) => i.priority === "High").length,
+          high: unpaidReceivables.filter((i) => i.priority === "High").length,
           invoices: custInvoices,
           lastVisit: lastV ? (lastV.visit_time || lastV.date) : null,
           lastVisitRecord: lastV || null,
+          publicCredit,
         };
       }
 
-      const map = {};
-      CUSTOMERS_LIST.forEach((c) => {
-        map[c.name] = {
+      // Group counterparties for current user
+      const userCompId = currentUser.companyId || currentUser.id;
+      const counterpartiesMap = {};
+
+      COMPANIES_LIST.forEach((c) => {
+        counterpartiesMap[c.id] = {
           id: c.id,
           name: c.name,
+          tradeName: c.tradeName,
+          type: c.type,
+          scale: c.scale,
+          category: c.category,
           address: c.address,
           phone: c.phone,
-          agent: c.agent,
+          email: c.email,
+          agent: c.contactPerson,
+          creditScore: c.creditScore,
+          creditTier: c.creditTier,
           invoices: [],
           outstanding: 0,
           overdue: 0,
@@ -202,54 +323,76 @@ async function request(path, { method = "GET", token, body } = {}) {
         };
       });
 
-      mockInvoicesStore.forEach((inv) => {
-        if (!map[inv.customer]) {
-          const found = findCustomer(inv.customer);
-          map[inv.customer] = {
-            id: found ? found.id : `CUST-${inv.customer.slice(0, 4).toUpperCase()}`,
-            name: inv.customer,
-            address: found?.address || "Registered Address",
-            phone: found?.phone || "+91 98000 00000",
-            agent: inv.assignedTo,
-            invoices: [],
-            outstanding: 0,
-            overdue: 0,
-            high: 0,
-            lastVisit: null,
+      mockTransactionsStore.forEach((t) => {
+        if (currentUser.role !== "Admin" && t.sellerId !== userCompId && t.buyerId !== userCompId) {
+          return;
+        }
+
+        const targetId = t.sellerId === userCompId ? t.buyerId : t.sellerId;
+        const targetEntry = counterpartiesMap[targetId];
+
+        if (targetEntry) {
+          const invObj = {
+            ...t,
+            customerId: t.buyerId,
+            customer: t.buyerName,
+            direction: t.sellerId === userCompId ? "RECEIVABLE" : "PAYABLE",
+            issued: t.issuedDate,
+            due: t.dueDate,
           };
+          targetEntry.invoices.push(invObj);
+          if (t.sellerId === userCompId && t.status !== "Paid") {
+            targetEntry.outstanding += t.amount;
+            if (t.daysOverdue > 0) targetEntry.overdue += t.amount;
+            if (t.priority === "High") targetEntry.high += 1;
+          }
         }
-        map[inv.customer].invoices.push(inv);
-        if (inv.status !== "Paid") {
-          map[inv.customer].outstanding += inv.amount;
-          if (inv.daysOverdue > 0) map[inv.customer].overdue += inv.amount;
-        }
-        if (inv.priority === "High" && inv.status !== "Paid") map[inv.customer].high += 1;
       });
 
-      Object.values(map).forEach((c) => {
+      Object.values(counterpartiesMap).forEach((c) => {
         const v = mockVisitsStore.find((item) => item.customerId === c.id || item.customer.toLowerCase() === c.name.toLowerCase());
         if (v) c.lastVisit = v.visit_time || v.date;
       });
 
-      return Object.values(map);
+      return Object.values(counterpartiesMap);
     }
 
+    // Dashboard Summary
     if (path.includes("/dashboard/summary")) {
-      const unpaid = mockInvoicesStore.filter((i) => i.status !== "Paid");
+      const userCompId = currentUser.companyId || currentUser.id;
+      const userTxs = currentUser.role === "Admin"
+        ? mockTransactionsStore
+        : mockTransactionsStore.filter((t) => t.sellerId === userCompId || t.buyerId === userCompId);
+
+      const receivables = userTxs.filter((t) => currentUser.role === "Admin" || t.sellerId === userCompId);
+      const payables = userTxs.filter((t) => t.buyerId === userCompId);
+
+      const unpaidRec = receivables.filter((t) => t.status !== "Paid");
+      const unpaidPay = payables.filter((t) => t.status !== "Paid");
+
+      const totalReceivables = unpaidRec.reduce((s, i) => s + i.amount, 0);
+      const totalPayables = unpaidPay.reduce((s, i) => s + i.amount, 0);
+      const overdueReceivables = unpaidRec.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
+      const overduePayables = unpaidPay.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
+
       return {
-        totalOutstanding: unpaid.reduce((s, i) => s + i.amount, 0),
-        totalOverdue: unpaid.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0),
-        highPriorityCount: unpaid.filter((i) => i.priority === "High").length,
-        collectionRate: Math.round(((mockInvoicesStore.length - unpaid.length) / (mockInvoicesStore.length || 1)) * 100),
-        openInvoiceCount: unpaid.length,
+        totalOutstanding: totalReceivables,
+        totalOverdue: overdueReceivables,
+        totalPayables,
+        overduePayables,
+        netStanding: totalReceivables - totalPayables,
+        highPriorityCount: unpaidRec.filter((i) => i.priority === "High").length,
+        collectionRate: Math.round(((receivables.length - unpaidRec.length) / (receivables.length || 1)) * 100),
+        openInvoiceCount: unpaidRec.length,
         recentVisitsCount: mockVisitsStore.length,
       };
     }
 
+    // NFC lookup
     if (path.includes("/nfc/lookup")) {
-      const customer = CUSTOMERS_LIST[0];
-      const inv = mockInvoicesStore.find((i) => i.customerId === customer.id);
-      return { tagId: "CUST001", customerId: customer.id, customer: customer.name, invoice: inv };
+      const customer = COMPANIES_LIST[0];
+      const inv = mockTransactionsStore.find((i) => i.buyerId === customer.id || i.sellerId === customer.id);
+      return { tagId: "COMP001", customerId: customer.id, customer: customer.name, invoice: inv };
     }
   }
 
@@ -315,7 +458,7 @@ export async function logout(token) {
   }
 }
 
-// Invoices API
+// Invoices / Transactions API
 export async function getInvoices(token) {
   return request("/api/invoices", { token });
 }
@@ -324,7 +467,7 @@ export async function createInvoice(token, invoiceData) {
   return request("/api/invoices", { method: "POST", token, body: invoiceData });
 }
 
-// Customers API
+// Customers & Counterparties API
 export async function getCustomers(token) {
   return request("/api/customers", { token });
 }
@@ -358,4 +501,13 @@ export async function getDashboardSummary(token) {
 // NFC Lookup API
 export async function lookupNfcTag(tagId, token) {
   return request(`/api/nfc/lookup?tagId=${encodeURIComponent(tagId)}`, { token });
+}
+
+// B2B Credit Directory Search API
+export async function searchCompanies(query = "", token) {
+  return request(`/api/companies/search?q=${encodeURIComponent(query)}`, { token });
+}
+
+export async function getCompanyCreditProfile(companyId, token) {
+  return request(`/api/companies/${encodeURIComponent(companyId)}/credit-profile`, { token });
 }

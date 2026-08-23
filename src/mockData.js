@@ -1,107 +1,1111 @@
-export const CUSTOMERS_LIST = [
-  { id: "CUST001", name: "Sharma Traders", agent: "agent1", address: "Plot 42, Industrial Area Phase II, Gurugram, Haryana", phone: "+91 98765 43210" },
-  { id: "CUST002", name: "Tata Consultancy Services", agent: "agent1", address: "TCS House, Raveline Street, Fort, Mumbai", phone: "+91 98200 11223" },
-  { id: "CUST003", name: "Reliance Digital", agent: "agent1", address: "Maker Chambers IV, 3rd Floor, Nariman Point, Mumbai", phone: "+91 98211 44556" },
-  { id: "CUST004", name: "Infosys Technologies", agent: "agent1", address: "Electronics City, Hosur Road, Bengaluru", phone: "+91 98450 77889" },
-  { id: "CUST005", name: "HDFC Enterprises", agent: "agent1", address: "HDFC House, Senapati Bapat Marg, Lower Parel, Mumbai", phone: "+91 98222 33445" },
-  { id: "CUST006", name: "Mahindra Logistics", agent: "agent1", address: "Mahindra Towers, P.K. Kurne Chowk, Worli, Mumbai", phone: "+91 98333 55667" },
-  { id: "CUST007", name: "Wipro Solutions", agent: "agent1", address: "Doddakannelli, Sarjapur Road, Bengaluru", phone: "+91 98444 66778" },
-  { id: "CUST008", name: "Adani Power", agent: "agent1", address: "Shantigram, S.G. Highway, Ahmedabad", phone: "+91 98555 88990" },
-  { id: "CUST009", name: "Titan Company", agent: "agent1", address: "Integrity, 132/133, Hosur Main Road, Bengaluru", phone: "+91 98666 99001" },
-  { id: "CUST010", name: "Zomato Media", agent: "agent2", address: "Ground Floor, Pioneer Square, Sector 62, Gurugram", phone: "+91 98777 00112" },
-  { id: "CUST011", name: "Flipkart Logistics", agent: "agent2", address: "Buildings Alyssa, Begonia, Outer Ring Road, Bengaluru", phone: "+91 98888 11223" },
-  { id: "CUST012", name: "Swiggy Technologies", agent: "agent2", address: "IBC Knowledge Park, Bannerghatta Main Road, Bengaluru", phone: "+91 98999 22334" },
-  { id: "CUST013", name: "Airtel Business", agent: "agent2", address: "Airtel Centre, Plot 16, Udyog Vihar Phase IV, Gurugram", phone: "+91 98111 33445" },
-  { id: "CUST014", name: "Bajaj Finance", agent: "agent2", address: "4th Floor, Bajaj Finserv Corporate Office, Pune", phone: "+91 98233 44556" },
-  { id: "CUST015", name: "Ola Mobility", agent: "agent2", address: "Regent Insignia, Koramangala, Bengaluru", phone: "+91 98344 55667" },
-  { id: "CUST016", name: "Paytm Payments", agent: "agent2", address: "Skymark One, Sector 98, Noida", phone: "+91 98455 66778" },
-  { id: "CUST017", name: "Maruti Suzuki Supply", agent: "agent2", address: "1, Nelson Mandela Road, Vasant Kunj, New Delhi", phone: "+91 98566 77889" },
+// CollectIQ B2B Network Mock Data & Credit Scoring Engine
+// Ecosystem of 20 Diverse Indian Enterprises (Wholesalers, Distributors, Retailers, MSMEs)
+
+export const COMPANIES_LIST = [
+  // --- LARGE WHOLESALERS & DISTRIBUTORS ---
+  {
+    id: "COMP001",
+    name: "Apex FMCG Wholesalers",
+    tradeName: "Apex Wholesale Hub",
+    type: "Wholesaler",
+    scale: "Large Enterprise",
+    category: "FMCG & Consumer Goods",
+    gstin: "07AAACA1234A1Z1",
+    phone: "+91 98111 22334",
+    email: "apex@collectiq.com",
+    loginUser: "apex",
+    contactPerson: "Rajesh Singhania",
+    address: "Block C-14, Okhla Industrial Area Phase II, New Delhi, Delhi",
+    city: "New Delhi",
+    state: "Delhi",
+    established: 2012,
+    creditScore: 820,
+    creditTier: "Excellent",
+    onTimePaymentRate: 94,
+    avgSettlementDays: 14,
+    creditLimit: 5000000,
+    verified: true,
+  },
+  {
+    id: "COMP002",
+    name: "Bharat Electronics Distribution",
+    tradeName: "Bharat Digital Hub",
+    type: "Distributor",
+    scale: "Large Enterprise",
+    category: "Consumer Electronics & Appliances",
+    gstin: "27AABCB5678B1Z2",
+    phone: "+91 98222 33445",
+    email: "bharat@collectiq.com",
+    loginUser: "bharat",
+    contactPerson: "Suresh Mehta",
+    address: "Plot 88, Lamington Road, Grant Road East, Mumbai, Maharashtra",
+    city: "Mumbai",
+    state: "Maharashtra",
+    established: 2010,
+    creditScore: 785,
+    creditTier: "Excellent",
+    onTimePaymentRate: 91,
+    avgSettlementDays: 18,
+    creditLimit: 7500000,
+    verified: true,
+  },
+  {
+    id: "COMP003",
+    name: "MedLife Pharma Distributors",
+    tradeName: "MedLife Healthcare",
+    type: "Distributor",
+    scale: "Large Enterprise",
+    category: "Pharmaceuticals & Healthcare",
+    gstin: "29AACCM9012C1Z3",
+    phone: "+91 98450 44556",
+    email: "medlife@collectiq.com",
+    loginUser: "medlife",
+    contactPerson: "Dr. Ananya Rao",
+    address: "74/2, Peenya Industrial Area 3rd Phase, Bengaluru, Karnataka",
+    city: "Bengaluru",
+    state: "Karnataka",
+    established: 2015,
+    creditScore: 840,
+    creditTier: "Excellent",
+    onTimePaymentRate: 96,
+    avgSettlementDays: 12,
+    creditLimit: 6000000,
+    verified: true,
+  },
+  {
+    id: "COMP004",
+    name: "Kaveri Textiles & Silks Mill",
+    tradeName: "Kaveri Silks",
+    type: "Manufacturer",
+    scale: "Large Enterprise",
+    category: "Textiles & Apparel Wholesale",
+    gstin: "33AABCK3456D1Z4",
+    phone: "+91 98440 55667",
+    email: "kaveri@collectiq.com",
+    loginUser: "kaveri",
+    contactPerson: "M. Murugan",
+    address: "12, Mill Road, Crosscut Commercial Zone, Surat / Coimbatore, Tamil Nadu",
+    city: "Coimbatore",
+    state: "Tamil Nadu",
+    established: 2008,
+    creditScore: 760,
+    creditTier: "Good",
+    onTimePaymentRate: 88,
+    avgSettlementDays: 22,
+    creditLimit: 4500000,
+    verified: true,
+  },
+  {
+    id: "COMP005",
+    name: "Vardhman Hardware & Steel Corp",
+    tradeName: "Vardhman Steel",
+    type: "Wholesaler",
+    scale: "Large Enterprise",
+    category: "Industrial Supplies & Hardware",
+    gstin: "24AABCV7890E1Z5",
+    phone: "+91 98250 66778",
+    email: "vardhman@collectiq.com",
+    loginUser: "vardhman",
+    contactPerson: "Praveen Jain",
+    address: "Plot 302, GIDC Industrial Estate, Vatva, Ahmedabad, Gujarat",
+    city: "Ahmedabad",
+    state: "Gujarat",
+    established: 2011,
+    creditScore: 730,
+    creditTier: "Good",
+    onTimePaymentRate: 85,
+    avgSettlementDays: 26,
+    creditLimit: 5500000,
+    verified: true,
+  },
+  {
+    id: "COMP006",
+    name: "National Agro Commodities",
+    tradeName: "National Agro",
+    type: "Wholesaler",
+    scale: "Large Enterprise",
+    category: "Agriculture, Pulses & Grains",
+    gstin: "06AABCN1234F1Z6",
+    phone: "+91 98120 77889",
+    email: "nationalagro@collectiq.com",
+    loginUser: "nationalagro",
+    contactPerson: "Balwinder Singh",
+    address: "Grain Market Complex, Sector 20, Karnal, Haryana",
+    city: "Karnal",
+    state: "Haryana",
+    established: 2005,
+    creditScore: 810,
+    creditTier: "Excellent",
+    onTimePaymentRate: 92,
+    avgSettlementDays: 15,
+    creditLimit: 8000000,
+    verified: true,
+  },
+  {
+    id: "COMP007",
+    name: "Speedline Logistics & Freight",
+    tradeName: "Speedline Express",
+    type: "Service",
+    scale: "Mid Wholesaler",
+    category: "B2B Freight & Warehousing",
+    gstin: "27AABCS5678G1Z7",
+    phone: "+91 98330 88990",
+    email: "speedline@collectiq.com",
+    loginUser: "speedline",
+    contactPerson: "Vikram Deshmukh",
+    address: "Logistics Park, Bhiwandi-Kalyan Bypass, Thane, Maharashtra",
+    city: "Thane",
+    state: "Maharashtra",
+    established: 2016,
+    creditScore: 710,
+    creditTier: "Good",
+    onTimePaymentRate: 82,
+    avgSettlementDays: 28,
+    creditLimit: 3000000,
+    verified: true,
+  },
+  {
+    id: "COMP008",
+    name: "Royal Packaging Solutions",
+    tradeName: "Royal Pack",
+    type: "Manufacturer",
+    scale: "Mid Wholesaler",
+    category: "Corrugated Boxes & Packaging",
+    gstin: "09AABCR9012H1Z8",
+    phone: "+91 98710 99001",
+    email: "royalpack@collectiq.com",
+    loginUser: "royalpack",
+    contactPerson: "Alok Srivastava",
+    address: "B-22, Sector 63, Industrial Zone, Noida, Uttar Pradesh",
+    city: "Noida",
+    state: "Uttar Pradesh",
+    established: 2017,
+    creditScore: 680,
+    creditTier: "Moderate",
+    onTimePaymentRate: 79,
+    avgSettlementDays: 34,
+    creditLimit: 2500000,
+    verified: true,
+  },
+
+  // --- RETAILERS & SMALL MERCHANTS ---
+  {
+    id: "COMP009",
+    name: "Gupta Kirana & General Store",
+    tradeName: "Gupta Superstore",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Daily Provisions & Grocery",
+    gstin: "07AACCG3456I1Z9",
+    phone: "+91 98100 12345",
+    email: "guptakirana@collectiq.com",
+    loginUser: "guptakirana",
+    contactPerson: "Ramesh Gupta",
+    address: "Shop 12, Main Market, Lajpat Nagar II, New Delhi, Delhi",
+    city: "New Delhi",
+    state: "Delhi",
+    established: 2014,
+    creditScore: 695,
+    creditTier: "Good",
+    onTimePaymentRate: 83,
+    avgSettlementDays: 25,
+    creditLimit: 800000,
+    verified: true,
+  },
+  {
+    id: "COMP010",
+    name: "City Pulse Pharmacy",
+    tradeName: "City Pulse Medicos",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Retail Chemist & Healthcare",
+    gstin: "27AACCC7890J1Z0",
+    phone: "+91 98200 23456",
+    email: "citypulse@collectiq.com",
+    loginUser: "citypulse",
+    contactPerson: "Nikhil Joshi",
+    address: "Shop 4, Ground Floor, Lokhandwala Complex, Andheri West, Mumbai, Maharashtra",
+    city: "Mumbai",
+    state: "Maharashtra",
+    established: 2018,
+    creditScore: 740,
+    creditTier: "Good",
+    onTimePaymentRate: 87,
+    avgSettlementDays: 20,
+    creditLimit: 1200000,
+    verified: true,
+  },
+  {
+    id: "COMP011",
+    name: "Modern Trends Apparel Boutique",
+    tradeName: "Modern Trends",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Fashion & Ready-made Garments",
+    gstin: "29AACCM1234K1Z1",
+    phone: "+91 98450 34567",
+    email: "moderntrends@collectiq.com",
+    loginUser: "moderntrends",
+    contactPerson: "Pooja Hegde",
+    address: "104, 100 Feet Road, Indiranagar, Bengaluru, Karnataka",
+    city: "Bengaluru",
+    state: "Karnataka",
+    established: 2019,
+    creditScore: 650,
+    creditTier: "Moderate",
+    onTimePaymentRate: 74,
+    avgSettlementDays: 38,
+    creditLimit: 900000,
+    verified: true,
+  },
+  {
+    id: "COMP012",
+    name: "Om Digital & Mobile Showroom",
+    tradeName: "Om Mobiles",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Smartphones & Electronics Retail",
+    gstin: "24AACCO5678L1Z2",
+    phone: "+91 98250 45678",
+    email: "ommobiles@collectiq.com",
+    loginUser: "ommobiles",
+    contactPerson: "Chirag Patel",
+    address: "Shop 8, CG Road, Navrangpura, Ahmedabad, Gujarat",
+    city: "Ahmedabad",
+    state: "Gujarat",
+    established: 2016,
+    creditScore: 720,
+    creditTier: "Good",
+    onTimePaymentRate: 84,
+    avgSettlementDays: 24,
+    creditLimit: 1500000,
+    verified: true,
+  },
+  {
+    id: "COMP013",
+    name: "Sharma Electricals & Hardware",
+    tradeName: "Sharma Hardware",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Electrical Fittings & Sanitaryware",
+    gstin: "07AACCS9012M1Z3",
+    phone: "+91 98180 56789",
+    email: "sharmaelectricals@collectiq.com",
+    loginUser: "sharmaelectricals",
+    contactPerson: "Vinod Sharma",
+    address: "Plot 42, Industrial Area Phase II, Gurugram, Haryana",
+    city: "Gurugram",
+    state: "Haryana",
+    established: 2013,
+    creditScore: 660,
+    creditTier: "Moderate",
+    onTimePaymentRate: 76,
+    avgSettlementDays: 36,
+    creditLimit: 1100000,
+    verified: true,
+  },
+  {
+    id: "COMP014",
+    name: "Sunshine Organic Supermart",
+    tradeName: "Sunshine Organic",
+    type: "Retailer",
+    scale: "Mid Retailer",
+    category: "Organic Grocery & Wellness",
+    gstin: "33AACCS3456N1Z4",
+    phone: "+91 98400 67890",
+    email: "sunshine@collectiq.com",
+    loginUser: "sunshine",
+    contactPerson: "Radhika Iyer",
+    address: "28, TTK Road, Alwarpet, Chennai, Tamil Nadu",
+    city: "Chennai",
+    state: "Tamil Nadu",
+    established: 2020,
+    creditScore: 770,
+    creditTier: "Good",
+    onTimePaymentRate: 89,
+    avgSettlementDays: 19,
+    creditLimit: 1800000,
+    verified: true,
+  },
+  {
+    id: "COMP015",
+    name: "Annapurna Sweet Shop & Bakery",
+    tradeName: "Annapurna Sweets",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Sweets, Bakery & Dairy Retail",
+    gstin: "09AACCA7890O1Z5",
+    phone: "+91 98390 78901",
+    email: "annapurna@collectiq.com",
+    loginUser: "annapurna",
+    contactPerson: "Gopal Krishna Agrawal",
+    address: "Civil Lines, Near Clock Tower, Kanpur, Uttar Pradesh",
+    city: "Kanpur",
+    state: "Uttar Pradesh",
+    established: 2009,
+    creditScore: 715,
+    creditTier: "Good",
+    onTimePaymentRate: 84,
+    avgSettlementDays: 22,
+    creditLimit: 750000,
+    verified: true,
+  },
+  {
+    id: "COMP016",
+    name: "Universal Books & Stationery",
+    tradeName: "Universal Books",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Books, Stationery & Office Supplies",
+    gstin: "19AACCU1234P1Z6",
+    phone: "+91 98310 89012",
+    email: "universalbooks@collectiq.com",
+    loginUser: "universalbooks",
+    contactPerson: "Subhash Banerjee",
+    address: "45, College Street, Central Kolkata, Kolkata, West Bengal",
+    city: "Kolkata",
+    state: "West Bengal",
+    established: 2012,
+    creditScore: 590,
+    creditTier: "High Risk",
+    onTimePaymentRate: 68,
+    avgSettlementDays: 46,
+    creditLimit: 500000,
+    verified: false,
+  },
+  {
+    id: "COMP017",
+    name: "CarePlus Diagnostic Lab",
+    tradeName: "CarePlus Diagnostics",
+    type: "Service",
+    scale: "Small Enterprise",
+    category: "Medical Diagnostics & Pathology",
+    gstin: "36AACCC5678Q1Z7",
+    phone: "+91 98490 90123",
+    email: "careplus@collectiq.com",
+    loginUser: "careplus",
+    contactPerson: "Dr. K. Srinivas",
+    address: "Road No. 2, Banjara Hills, Hyderabad, Telangana",
+    city: "Hyderabad",
+    state: "Telangana",
+    established: 2018,
+    creditScore: 805,
+    creditTier: "Excellent",
+    onTimePaymentRate: 93,
+    avgSettlementDays: 14,
+    creditLimit: 1400000,
+    verified: true,
+  },
+  {
+    id: "COMP018",
+    name: "Urban Wood Furniture Studio",
+    tradeName: "Urban Wood",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Modular Furniture & Home Decor",
+    gstin: "08AACCU9012R1Z8",
+    phone: "+91 98290 01234",
+    email: "urbanwood@collectiq.com",
+    loginUser: "urbanwood",
+    contactPerson: "Manish Rathore",
+    address: "Plot 15, MI Road, Opp. Ganpati Plaza, Jaipur, Rajasthan",
+    city: "Jaipur",
+    state: "Rajasthan",
+    established: 2017,
+    creditScore: 630,
+    creditTier: "Moderate",
+    onTimePaymentRate: 72,
+    avgSettlementDays: 41,
+    creditLimit: 1000000,
+    verified: true,
+  },
+  {
+    id: "COMP019",
+    name: "GreenLeaf Fresh Mart",
+    tradeName: "GreenLeaf Fresh",
+    type: "Retailer",
+    scale: "Small Retailer",
+    category: "Fresh Farm Produce & Fruit Chain",
+    gstin: "27AACCG3456S1Z9",
+    phone: "+91 98210 12345",
+    email: "greenleaf@collectiq.com",
+    loginUser: "greenleaf",
+    contactPerson: "Ajay Sawant",
+    address: "Shop 2, FC Road, Shivaji Nagar, Pune, Maharashtra",
+    city: "Pune",
+    state: "Maharashtra",
+    established: 2021,
+    creditScore: 700,
+    creditTier: "Good",
+    onTimePaymentRate: 81,
+    avgSettlementDays: 25,
+    creditLimit: 600000,
+    verified: true,
+  },
+  {
+    id: "COMP020",
+    name: "ChaiPoint Express Cafe",
+    tradeName: "ChaiPoint QuickBites",
+    type: "Retailer",
+    scale: "Micro Merchant",
+    category: "Quick Service Cafe & Beverages",
+    gstin: "29AACCC7890T1Z0",
+    phone: "+91 98455 23456",
+    email: "chaipoint@collectiq.com",
+    loginUser: "chaipoint",
+    contactPerson: "Kunal Nayak",
+    address: "Kiosk 3, Koramangala 5th Block, Bengaluru, Karnataka",
+    city: "Bengaluru",
+    state: "Karnataka",
+    established: 2022,
+    creditScore: 615,
+    creditTier: "Moderate",
+    onTimePaymentRate: 70,
+    avgSettlementDays: 44,
+    creditLimit: 350000,
+    verified: false,
+  },
 ];
 
-export const INDIAN_COMPANIES = CUSTOMERS_LIST.map((c) => ({ name: c.name, agent: c.agent, id: c.id }));
-
-export function findCustomer(identifier) {
+// Helper to look up company by ID, Name, or Email
+export function findCompany(identifier) {
   if (!identifier) return null;
   const clean = String(identifier).trim().toLowerCase();
-  return CUSTOMERS_LIST.find((c) =>
-    c.id.toLowerCase() === clean ||
-    c.name.toLowerCase() === clean ||
-    c.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === clean ||
-    c.name.toLowerCase().replace(/\s+/g, "") === clean.replace(/\s+/g, "")
-  ) || null;
+  return (
+    COMPANIES_LIST.find(
+      (c) =>
+        c.id.toLowerCase() === clean ||
+        c.name.toLowerCase() === clean ||
+        c.tradeName.toLowerCase() === clean ||
+        c.email.toLowerCase() === clean ||
+        c.loginUser.toLowerCase() === clean ||
+        c.name.toLowerCase().replace(/[^a-z0-9]/g, "-") === clean ||
+        c.name.toLowerCase().replace(/\s+/g, "") === clean.replace(/\s+/g, "")
+    ) || null
+  );
 }
 
-function seededRandom(seed) {
-  let s = seed;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
+// Backward compatibility alias
+export const CUSTOMERS_LIST = COMPANIES_LIST.map((c) => ({
+  id: c.id,
+  name: c.name,
+  tradeName: c.tradeName,
+  agent: c.loginUser,
+  address: c.address,
+  phone: c.phone,
+  email: c.email,
+  creditScore: c.creditScore,
+  creditTier: c.creditTier,
+  scale: c.scale,
+  category: c.category,
+}));
+
+export function findCustomer(identifier) {
+  const comp = findCompany(identifier);
+  if (!comp) return null;
+  return {
+    id: comp.id,
+    name: comp.name,
+    tradeName: comp.tradeName,
+    agent: comp.loginUser,
+    address: comp.address,
+    phone: comp.phone,
+    email: comp.email,
+    creditScore: comp.creditScore,
+    creditTier: comp.creditTier,
+    scale: comp.scale,
+    category: comp.category,
   };
 }
-const rnd = seededRandom(42);
-const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
 
-function priorityFor(daysOverdue, amount) {
-  const score = daysOverdue * 1 + amount / 15000;
-  if (daysOverdue > 45 || score > 70) return "High";
-  if (daysOverdue > 15 || score > 30) return "Medium";
-  return "Low";
-}
+// --- NETWORKED B2B TRANSACTIONS (RECEIVABLES & PAYABLES) ---
+// Each transaction links a Seller (receives money) and Buyer (pays money)
 
-export const STATUSES = ["Outstanding", "Partially Paid", "Overdue", "Paid"];
-
-const sharmaInvoices = [
+export const TRANSACTIONS_LIST = [
+  // Apex FMCG Wholesalers (COMP001) transactions
   {
-    id: "INV-IN-0901",
-    customerId: "CUST001",
-    customer: "Sharma Traders",
-    assignedTo: "agent1",
-    amount: 33000,
+    id: "INV-2026-101",
+    sellerId: "COMP001",
+    sellerName: "Apex FMCG Wholesalers",
+    buyerId: "COMP009",
+    buyerName: "Gupta Kirana & General Store",
+    amount: 145000,
     status: "Outstanding",
     priority: "Medium",
     daysOverdue: 0,
-    issued: "2026-08-01",
-    due: "2026-08-31",
+    issuedDate: "2026-08-10",
+    dueDate: "2026-09-09",
+    description: "Bulk Packaged Foods, Edible Oils & Spices Supply",
   },
   {
-    id: "INV-IN-0902",
-    customerId: "CUST001",
-    customer: "Sharma Traders",
-    assignedTo: "agent1",
-    amount: 12000,
+    id: "INV-2026-102",
+    sellerId: "COMP001",
+    sellerName: "Apex FMCG Wholesalers",
+    buyerId: "COMP009",
+    buyerName: "Gupta Kirana & General Store",
+    amount: 68000,
     status: "Overdue",
     priority: "High",
-    daysOverdue: 18,
-    issued: "2026-07-10",
-    due: "2026-08-04",
+    daysOverdue: 22,
+    issuedDate: "2026-07-01",
+    dueDate: "2026-08-01",
+    description: "Beverages, Soft Drinks & Confectionery Stock",
+  },
+  {
+    id: "INV-2026-103",
+    sellerId: "COMP001",
+    sellerName: "Apex FMCG Wholesalers",
+    buyerId: "COMP014",
+    buyerName: "Sunshine Organic Supermart",
+    amount: 285000,
+    status: "Outstanding",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-08-15",
+    dueDate: "2026-09-14",
+    description: "Premium Packaged Staples & Dairy Consignments",
+  },
+  {
+    id: "INV-2026-104",
+    sellerId: "COMP001",
+    sellerName: "Apex FMCG Wholesalers",
+    buyerId: "COMP015",
+    buyerName: "Annapurna Sweet Shop & Bakery",
+    amount: 95000,
+    status: "Partially Paid",
+    priority: "Medium",
+    daysOverdue: 8,
+    issuedDate: "2026-07-15",
+    dueDate: "2026-08-15",
+    description: "Commercial Sugar, Dry Fruits & Dairy Raw Stock",
+  },
+  {
+    id: "INV-2026-105",
+    sellerId: "COMP006",
+    sellerName: "National Agro Commodities",
+    buyerId: "COMP001",
+    buyerName: "Apex FMCG Wholesalers",
+    amount: 520000,
+    status: "Outstanding",
+    priority: "Medium",
+    daysOverdue: 0,
+    issuedDate: "2026-08-05",
+    dueDate: "2026-09-04",
+    description: "Direct Mill Basmati Rice & Wheat Flour Supply (Bulk 10MT)",
+  },
+  {
+    id: "INV-2026-106",
+    sellerId: "COMP008",
+    sellerName: "Royal Packaging Solutions",
+    buyerId: "COMP001",
+    buyerName: "Apex FMCG Wholesalers",
+    amount: 110000,
+    status: "Paid",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-07-10",
+    dueDate: "2026-08-10",
+    description: "Custom Printed 5-Ply Corrugated Wholesale Cartons",
+  },
+
+  // Bharat Electronics Distribution (COMP002) transactions
+  {
+    id: "INV-2026-201",
+    sellerId: "COMP002",
+    sellerName: "Bharat Electronics Distribution",
+    buyerId: "COMP012",
+    buyerName: "Om Digital & Mobile Showroom",
+    amount: 380000,
+    status: "Overdue",
+    priority: "High",
+    daysOverdue: 19,
+    issuedDate: "2026-07-05",
+    dueDate: "2026-08-04",
+    description: "Flagship 5G Smartphones & Audio Accessories Consignment",
+  },
+  {
+    id: "INV-2026-202",
+    sellerId: "COMP002",
+    sellerName: "Bharat Electronics Distribution",
+    buyerId: "COMP012",
+    buyerName: "Om Digital & Mobile Showroom",
+    amount: 190000,
+    status: "Outstanding",
+    priority: "Medium",
+    daysOverdue: 0,
+    issuedDate: "2026-08-12",
+    dueDate: "2026-09-11",
+    description: "Tablet Computers & Wireless Peripherals Batch",
+  },
+  {
+    id: "INV-2026-203",
+    sellerId: "COMP002",
+    sellerName: "Bharat Electronics Distribution",
+    buyerId: "COMP013",
+    buyerName: "Sharma Electricals & Hardware",
+    amount: 140000,
+    status: "Outstanding",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-08-08",
+    dueDate: "2026-09-07",
+    description: "Smart Home Switches, Inverters & Heavy Wiring Stock",
+  },
+  {
+    id: "INV-2026-204",
+    sellerId: "COMP007",
+    sellerName: "Speedline Logistics & Freight",
+    buyerId: "COMP002",
+    buyerName: "Bharat Electronics Distribution",
+    amount: 78000,
+    status: "Overdue",
+    priority: "High",
+    daysOverdue: 14,
+    issuedDate: "2026-07-10",
+    dueDate: "2026-08-09",
+    description: "Express Air & Road Freight from Hub to Regional Depots",
+  },
+
+  // MedLife Pharma Distributors (COMP003) transactions
+  {
+    id: "INV-2026-301",
+    sellerId: "COMP003",
+    sellerName: "MedLife Pharma Distributors",
+    buyerId: "COMP010",
+    buyerName: "City Pulse Pharmacy",
+    amount: 165000,
+    status: "Outstanding",
+    priority: "Medium",
+    daysOverdue: 0,
+    issuedDate: "2026-08-04",
+    dueDate: "2026-09-03",
+    description: "Antibiotics, Cardiac Medication & OTC Health Supplements",
+  },
+  {
+    id: "INV-2026-302",
+    sellerId: "COMP003",
+    sellerName: "MedLife Pharma Distributors",
+    buyerId: "COMP010",
+    buyerName: "City Pulse Pharmacy",
+    amount: 45000,
+    status: "Paid",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-07-01",
+    dueDate: "2026-07-31",
+    description: "Insulin Cold-Chain Delivery & Diagnostic Test Kits",
+  },
+  {
+    id: "INV-2026-303",
+    sellerId: "COMP003",
+    sellerName: "MedLife Pharma Distributors",
+    buyerId: "COMP017",
+    buyerName: "CarePlus Diagnostic Lab",
+    amount: 320000,
+    status: "Outstanding",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-08-16",
+    dueDate: "2026-09-15",
+    description: "Automated Immunoassay Reagents & Pathology Consumables",
+  },
+
+  // Kaveri Textiles & Silks Mill (COMP004) transactions
+  {
+    id: "INV-2026-401",
+    sellerId: "COMP004",
+    sellerName: "Kaveri Textiles & Silks Mill",
+    buyerId: "COMP011",
+    buyerName: "Modern Trends Apparel Boutique",
+    amount: 240000,
+    status: "Overdue",
+    priority: "High",
+    daysOverdue: 34,
+    issuedDate: "2026-06-20",
+    dueDate: "2026-07-20",
+    description: "Festival Silk Sarees, Cotton Linen & Designer Fabric Rolls",
+  },
+  {
+    id: "INV-2026-402",
+    sellerId: "COMP004",
+    sellerName: "Kaveri Textiles & Silks Mill",
+    buyerId: "COMP011",
+    buyerName: "Modern Trends Apparel Boutique",
+    amount: 115000,
+    status: "Partially Paid",
+    priority: "Medium",
+    daysOverdue: 12,
+    issuedDate: "2026-07-11",
+    dueDate: "2026-08-11",
+    description: "Ethnic Wear Kurtis & Blended Dress Materials",
+  },
+
+  // Vardhman Hardware & Steel (COMP005) transactions
+  {
+    id: "INV-2026-501",
+    sellerId: "COMP005",
+    sellerName: "Vardhman Hardware & Steel Corp",
+    buyerId: "COMP013",
+    buyerName: "Sharma Electricals & Hardware",
+    amount: 310000,
+    status: "Overdue",
+    priority: "High",
+    daysOverdue: 28,
+    issuedDate: "2026-06-26",
+    dueDate: "2026-07-26",
+    description: "TMT Rebars, Structural Steel Angles & Heavy Fasteners",
+  },
+  {
+    id: "INV-2026-502",
+    sellerId: "COMP005",
+    sellerName: "Vardhman Hardware & Steel Corp",
+    buyerId: "COMP018",
+    buyerName: "Urban Wood Furniture Studio",
+    amount: 175000,
+    status: "Outstanding",
+    priority: "Medium",
+    daysOverdue: 0,
+    issuedDate: "2026-08-01",
+    dueDate: "2026-08-31",
+    description: "Hydraulic Hinges, Drawer Runners & Powder-Coated Metal Frames",
+  },
+
+  // National Agro (COMP006) transactions
+  {
+    id: "INV-2026-601",
+    sellerId: "COMP006",
+    sellerName: "National Agro Commodities",
+    buyerId: "COMP019",
+    buyerName: "GreenLeaf Fresh Mart",
+    amount: 85000,
+    status: "Paid",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-07-28",
+    dueDate: "2026-08-27",
+    description: "Organic Farm Fresh Apples, Seasonal Mangoes & Citrus Fruits",
+  },
+  {
+    id: "INV-2026-602",
+    sellerId: "COMP006",
+    sellerName: "National Agro Commodities",
+    buyerId: "COMP015",
+    buyerName: "Annapurna Sweet Shop & Bakery",
+    amount: 160000,
+    status: "Outstanding",
+    priority: "Medium",
+    daysOverdue: 0,
+    issuedDate: "2026-08-02",
+    dueDate: "2026-09-01",
+    description: "Refined Wheat Maida, Besan & Premium Grade Ghee (Bulk Tins)",
+  },
+
+  // Speedline Logistics (COMP007) transactions
+  {
+    id: "INV-2026-701",
+    sellerId: "COMP007",
+    sellerName: "Speedline Logistics & Freight",
+    buyerId: "COMP001",
+    buyerName: "Apex FMCG Wholesalers",
+    amount: 92000,
+    status: "Outstanding",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-08-14",
+    dueDate: "2026-09-13",
+    description: "Inter-State Container Movement & Cold Storage Facility Lease",
+  },
+
+  // Royal Packaging (COMP008) transactions
+  {
+    id: "INV-2026-801",
+    sellerId: "COMP008",
+    sellerName: "Royal Packaging Solutions",
+    buyerId: "COMP016",
+    buyerName: "Universal Books & Stationery",
+    amount: 48000,
+    status: "Overdue",
+    priority: "High",
+    daysOverdue: 45,
+    issuedDate: "2026-06-08",
+    dueDate: "2026-07-08",
+    description: "Book Shipping Envelopes & Biodegradable Bubble Wraps",
+  },
+  {
+    id: "INV-2026-802",
+    sellerId: "COMP008",
+    sellerName: "Royal Packaging Solutions",
+    buyerId: "COMP020",
+    buyerName: "ChaiPoint Express Cafe",
+    amount: 32000,
+    status: "Overdue",
+    priority: "High",
+    daysOverdue: 38,
+    issuedDate: "2026-06-16",
+    dueDate: "2026-07-16",
+    description: "Disposable Eco Paper Cups, Straws & Takeaway Carry Bags",
+  },
+
+  // Small Retailers additional supplier purchases & settlements
+  {
+    id: "INV-2026-901",
+    sellerId: "COMP016",
+    sellerName: "Universal Books & Stationery",
+    buyerId: "COMP017",
+    buyerName: "CarePlus Diagnostic Lab",
+    amount: 26000,
+    status: "Paid",
+    priority: "Low",
+    daysOverdue: 0,
+    issuedDate: "2026-07-20",
+    dueDate: "2026-08-19",
+    description: "Custom Patient Report Jackets, Thermal Printer Rolls & Stationery",
+  },
+  {
+    id: "INV-2026-902",
+    sellerId: "COMP018",
+    sellerName: "Urban Wood Furniture Studio",
+    buyerId: "COMP020",
+    buyerName: "ChaiPoint Express Cafe",
+    amount: 85000,
+    status: "Partially Paid",
+    priority: "High",
+    daysOverdue: 25,
+    issuedDate: "2026-06-29",
+    dueDate: "2026-07-29",
+    description: "High-Top Wooden Cafe Bar Stools & Solid Pine Tables (Set of 6)",
   },
 ];
 
-const generatedInvoices = Array.from({ length: 38 }).map((_, i) => {
-  const companyObj = pick(INDIAN_COMPANIES.slice(1));
-  const amount = Math.round((25000 + rnd() * 850000) / 1000) * 1000;
-  const daysOverdue = Math.round(rnd() * rnd() * 95);
-  const isPaid = rnd() < 0.22 && daysOverdue < 5;
-  const status = isPaid ? "Paid" : daysOverdue > 0 ? (rnd() < 0.18 ? "Partially Paid" : "Overdue") : "Outstanding";
-  const priority = status === "Paid" ? "Low" : priorityFor(daysOverdue, amount);
-  const issued = new Date(2026, 4 + Math.floor(rnd() * 4), 1 + Math.floor(rnd() * 27));
-  const due = new Date(issued.getTime() + 30 * 86400000);
+// Helper to filter transactions for a specific company or current logged-in account
+export function getTransactionsForCompany(companyIdentifier) {
+  if (!companyIdentifier || companyIdentifier === "admin" || companyIdentifier === "admin@collectiq.com") {
+    // Admin sees all invoices formatted with counterparty perspectives
+    return {
+      receivables: TRANSACTIONS_LIST.map((t) => ({
+        ...t,
+        customerId: t.buyerId,
+        customer: t.buyerName,
+        assignedTo: t.sellerName,
+        direction: "RECEIVABLE",
+        issued: t.issuedDate,
+        due: t.dueDate,
+      })),
+      payables: TRANSACTIONS_LIST.map((t) => ({
+        ...t,
+        customerId: t.sellerId,
+        customer: t.sellerName,
+        assignedTo: t.buyerName,
+        direction: "PAYABLE",
+        issued: t.issuedDate,
+        due: t.dueDate,
+      })),
+      all: TRANSACTIONS_LIST.map((t) => ({
+        ...t,
+        customerId: t.buyerId,
+        customer: t.buyerName,
+        assignedTo: t.sellerName,
+        direction: "RECEIVABLE",
+        issued: t.issuedDate,
+        due: t.dueDate,
+      })),
+    };
+  }
+
+  const company = findCompany(companyIdentifier);
+  if (!company) {
+    return { receivables: [], payables: [], all: [] };
+  }
+
+  // Receivables: Company is Seller (other businesses owe this company)
+  const receivables = TRANSACTIONS_LIST.filter((t) => t.sellerId === company.id).map((t) => ({
+    ...t,
+    customerId: t.buyerId,
+    customer: t.buyerName,
+    counterpartyId: t.buyerId,
+    counterpartyName: t.buyerName,
+    assignedTo: company.name,
+    direction: "RECEIVABLE",
+    issued: t.issuedDate,
+    due: t.dueDate,
+  }));
+
+  // Payables: Company is Buyer (this company owes suppliers)
+  const payables = TRANSACTIONS_LIST.filter((t) => t.buyerId === company.id).map((t) => ({
+    ...t,
+    customerId: t.sellerId,
+    customer: t.sellerName,
+    counterpartyId: t.sellerId,
+    counterpartyName: t.sellerName,
+    assignedTo: t.sellerName,
+    direction: "PAYABLE",
+    issued: t.issuedDate,
+    due: t.dueDate,
+  }));
+
+  const all = [...receivables, ...payables];
+
+  return { receivables, payables, all };
+}
+
+// Calculate Public Credit Profile (Privacy Preserving: no counterparty transaction details leaked)
+export function getCompanyPublicCreditProfile(companyIdOrName) {
+  const company = findCompany(companyIdOrName);
+  if (!company) return null;
+
+  // Aggregate market exposures across all network transactions
+  const asBuyerTransactions = TRANSACTIONS_LIST.filter((t) => t.buyerId === company.id);
+  const asSellerTransactions = TRANSACTIONS_LIST.filter((t) => t.sellerId === company.id);
+
+  const unpaidPayables = asBuyerTransactions.filter((t) => t.status !== "Paid");
+  const totalMarketPayables = unpaidPayables.reduce((s, t) => s + t.amount, 0);
+  const overduePayables = unpaidPayables.filter((t) => t.daysOverdue > 0).reduce((s, t) => s + t.amount, 0);
+
+  const unpaidReceivables = asSellerTransactions.filter((t) => t.status !== "Paid");
+  const totalMarketReceivables = unpaidReceivables.reduce((s, t) => s + t.amount, 0);
+  const overdueReceivables = unpaidReceivables.filter((t) => t.daysOverdue > 0).reduce((s, t) => s + t.amount, 0);
+
+  // Net Market Standing: Receivables (Money to Receive) minus Payables (Money to Pay)
+  // Positive = Net Surplus / Has given extra market credit
+  // Negative = Net Market Debt / Pending overall money to pay
+  const netMarketStanding = totalMarketReceivables - totalMarketPayables;
+
+  const totalInvoicesAsBuyer = asBuyerTransactions.length;
+  const paidInvoicesAsBuyer = asBuyerTransactions.filter((t) => t.status === "Paid").length;
+  const onTimeRatio =
+    totalInvoicesAsBuyer > 0
+      ? Math.round((paidInvoicesAsBuyer / totalInvoicesAsBuyer) * 100)
+      : company.onTimePaymentRate;
 
   return {
-    id: `INV-IN-${1000 + i}`,
-    customerId: companyObj.id,
-    customer: companyObj.name,
-    assignedTo: companyObj.agent,
-    amount,
-    status,
-    priority,
-    daysOverdue: status === "Paid" ? 0 : daysOverdue,
-    issued: issued.toISOString().slice(0, 10),
-    due: due.toISOString().slice(0, 10),
-  };
-});
+    id: company.id,
+    name: company.name,
+    tradeName: company.tradeName,
+    type: company.type,
+    scale: company.scale,
+    category: company.category,
+    city: company.city,
+    state: company.state,
+    address: company.address,
+    phone: company.phone,
+    email: company.email,
+    established: company.established,
+    gstin: company.gstin,
+    verified: company.verified,
 
-export const invoices = [...sharmaInvoices, ...generatedInvoices];
+    // Public Credit & Risk Metrics (Privacy Preserved)
+    creditScore: company.creditScore,
+    creditTier: company.creditTier,
+    onTimePaymentRate: onTimeRatio,
+    avgSettlementDays: company.avgSettlementDays,
+    creditLimit: company.creditLimit,
+
+    // Market Exposure Aggregates
+    totalMarketPayables, // Overall pending money this company has to pay to market
+    overduePayables,
+    totalMarketReceivables, // Overall money market owes this company
+    overdueReceivables,
+    netMarketStanding, // Positive: Net Extra Given / Surplus | Negative: Net To Pay
+    openPayablesCount: unpaidPayables.length,
+    openReceivablesCount: unpaidReceivables.length,
+
+    // Verification Badge
+    trustBadge:
+      company.creditScore >= 750
+        ? "Tier-1 Verified Partner"
+        : company.creditScore >= 650
+        ? "Standard Verified Partner"
+        : "Caution: Strict Terms Recommended",
+  };
+}
+
+// Public Search function for B2B Credit Directory
+export function searchCompanies(query = "") {
+  const cleanQ = String(query).trim().toLowerCase();
+  if (!cleanQ) {
+    return COMPANIES_LIST.map((c) => getCompanyPublicCreditProfile(c.id));
+  }
+
+  const matched = COMPANIES_LIST.filter(
+    (c) =>
+      c.name.toLowerCase().includes(cleanQ) ||
+      c.tradeName.toLowerCase().includes(cleanQ) ||
+      c.category.toLowerCase().includes(cleanQ) ||
+      c.type.toLowerCase().includes(cleanQ) ||
+      c.scale.toLowerCase().includes(cleanQ) ||
+      c.city.toLowerCase().includes(cleanQ) ||
+      c.state.toLowerCase().includes(cleanQ) ||
+      c.id.toLowerCase().includes(cleanQ)
+  );
+
+  return matched.map((c) => getCompanyPublicCreditProfile(c.id));
+}
+
+// Backward compatible initial exports
+export const invoices = TRANSACTIONS_LIST.map((t) => ({
+  id: t.id,
+  customerId: t.buyerId,
+  customer: t.buyerName,
+  sellerId: t.sellerId,
+  sellerName: t.sellerName,
+  buyerId: t.buyerId,
+  buyerName: t.buyerName,
+  assignedTo: t.sellerName,
+  amount: t.amount,
+  status: t.status,
+  priority: t.priority,
+  daysOverdue: t.daysOverdue,
+  issued: t.issuedDate,
+  due: t.dueDate,
+  direction: "RECEIVABLE",
+}));
+
+export const mockVisits = [
+  {
+    id: "v-100",
+    customerId: "COMP009",
+    customer: "Gupta Kirana & General Store",
+    outcome: "Promised Payment",
+    date: "2026-08-22",
+    visit_time: "2026-08-22T22:30:00",
+    agent: "Apex Field Lead",
+    amount: 68000,
+    notes: "Spoke with Ramesh Gupta. Agreed to clear overdue invoice INV-2026-102 by RTGS next Monday.",
+  },
+  {
+    id: "v-101",
+    customerId: "COMP012",
+    customer: "Om Digital & Mobile Showroom",
+    outcome: "Contacted Customer",
+    date: "2026-08-20",
+    visit_time: "2026-08-20T14:15:00",
+    agent: "Bharat Distribution Agent",
+    amount: 0,
+    notes: "Owner requested 5 days grace period due to stock clearance delay.",
+  },
+  {
+    id: "v-102",
+    customerId: "COMP011",
+    customer: "Modern Trends Apparel Boutique",
+    outcome: "Collected Cash",
+    date: "2026-08-21",
+    visit_time: "2026-08-21T16:45:00",
+    agent: "Kaveri Field Executive",
+    amount: 115000,
+    notes: "Collected cheque in full against invoice INV-2026-402.",
+  },
+  {
+    id: "v-103",
+    customerId: "COMP013",
+    customer: "Sharma Electricals & Hardware",
+    outcome: "Promised Payment",
+    date: "2026-08-22",
+    visit_time: "2026-08-22T11:20:00",
+    agent: "Vardhman Sales Agent",
+    amount: 150000,
+    notes: "Partial payment promised by Friday; remaining upon delivery of next steel batch.",
+  },
+];
 
 export const trendData = [
   { month: "Mar", outstanding: 1850000, overdue: 420000 },
@@ -117,11 +1121,4 @@ export const agingBuckets = [
   { key: "31-60", label: "31–60 days", test: (d) => d > 30 && d <= 60 },
   { key: "61-90", label: "61–90 days", test: (d) => d > 60 && d <= 90 },
   { key: "90+", label: "90+ days", test: (d) => d > 90 },
-];
-
-export const mockVisits = [
-  { id: "v-100", customerId: "CUST001", customer: "Sharma Traders", outcome: "Contacted Customer", date: "2026-08-22", visit_time: "2026-08-22T22:30:00", agent: "agent1", amount: 0, notes: "Spoke with Mr. Sharma regarding overdue invoice INV-IN-0902." },
-  { id: "v-101", customerId: "CUST002", customer: "Tata Consultancy Services", outcome: "Promised Payment", date: "2026-08-20", visit_time: "2026-08-20T14:15:00", agent: "agent1", amount: 450000, notes: "Spoke with Finance Lead. Payment scheduled by RTGS on Friday." },
-  { id: "v-102", customerId: "CUST010", customer: "Zomato Media", outcome: "Collected Cash", date: "2026-08-21", visit_time: "2026-08-21T16:45:00", agent: "agent2", amount: 185000, notes: "Collected manager check on-site." },
-  { id: "v-103", customerId: "CUST003", customer: "Reliance Digital", outcome: "Contacted Customer", date: "2026-08-22", visit_time: "2026-08-22T11:20:00", agent: "agent1", amount: 0, notes: "Met with procurement team regarding overdue invoice." },
 ];

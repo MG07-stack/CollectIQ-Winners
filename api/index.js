@@ -1,17 +1,64 @@
-import { invoices as initialInvoices, mockVisits as initialVisits, CUSTOMERS_LIST, findCustomer } from "../src/mockData.js";
+import {
+  COMPANIES_LIST,
+  TRANSACTIONS_LIST,
+  invoices as initialInvoices,
+  mockVisits as initialVisits,
+  CUSTOMERS_LIST,
+  findCustomer,
+  findCompany,
+  getCompanyPublicCreditProfile,
+  searchCompanies,
+} from "../src/mockData.js";
 
 // In-memory data store
-let invoicesStore = [...initialInvoices];
+let transactionsStore = [...TRANSACTIONS_LIST];
 let visitsStore = [...initialVisits];
 
 const DEMO_USERS = {
-  admin: { id: "u1", username: "admin", email: "admin@collectiq.com", name: "Sarah Connor (Admin)", full_name: "Sarah Connor (Admin)", role: "Admin", token: "tok_admin_12345", password: "admin123" },
-  "admin@collectiq.com": { id: "u1", username: "admin", email: "admin@collectiq.com", name: "Sarah Connor (Admin)", full_name: "Sarah Connor (Admin)", role: "Admin", token: "tok_admin_12345", password: "admin123" },
-  agent1: { id: "u2", username: "agent1", email: "agent1@collectiq.com", name: "Alex Rivera (Agent 1)", full_name: "Alex Rivera (Agent 1)", role: "Field Agent", token: "tok_agent1_12345", password: "agent123" },
-  "agent1@collectiq.com": { id: "u2", username: "agent1", email: "agent1@collectiq.com", name: "Alex Rivera (Agent 1)", full_name: "Alex Rivera (Agent 1)", role: "Field Agent", token: "tok_agent1_12345", password: "agent123" },
-  agent2: { id: "u3", username: "agent2", email: "agent2@collectiq.com", name: "Marcus Vance (Agent 2)", full_name: "Marcus Vance (Agent 2)", role: "Field Agent", token: "tok_agent2_12345", password: "agent123" },
-  "agent2@collectiq.com": { id: "u3", username: "agent2", email: "agent2@collectiq.com", name: "Marcus Vance (Agent 2)", full_name: "Marcus Vance (Agent 2)", role: "Field Agent", token: "tok_agent2_12345", password: "agent123" },
+  admin: {
+    id: "u_admin",
+    username: "admin",
+    email: "admin@collectiq.com",
+    name: "Platform Administrator (Full Network)",
+    full_name: "Platform Administrator (Full Network)",
+    role: "Admin",
+    token: "tok_admin_12345",
+    password: "admin123",
+    companyId: null,
+  },
+  "admin@collectiq.com": {
+    id: "u_admin",
+    username: "admin",
+    email: "admin@collectiq.com",
+    name: "Platform Administrator (Full Network)",
+    full_name: "Platform Administrator (Full Network)",
+    role: "Admin",
+    token: "tok_admin_12345",
+    password: "admin123",
+    companyId: null,
+  },
 };
+
+// Seed all 20 companies into demo accounts
+COMPANIES_LIST.forEach((comp) => {
+  const userObj = {
+    id: comp.id,
+    companyId: comp.id,
+    username: comp.loginUser,
+    email: comp.email,
+    name: comp.name,
+    full_name: `${comp.name} (${comp.type})`,
+    role: comp.type === "Wholesaler" || comp.type === "Manufacturer" ? "Wholesaler Admin" : "Retailer Admin",
+    type: comp.type,
+    scale: comp.scale,
+    category: comp.category,
+    token: `tok_${comp.loginUser}_12345`,
+    password: "admin123",
+    creditScore: comp.creditScore,
+  };
+  DEMO_USERS[comp.email.toLowerCase()] = userObj;
+  DEMO_USERS[comp.loginUser.toLowerCase()] = userObj;
+});
 
 let registeredUsers = { ...DEMO_USERS };
 
@@ -19,10 +66,15 @@ function parseJsonBody(req) {
   return new Promise((resolve) => {
     if (req.body && typeof req.body === "object") return resolve(req.body);
     let body = "";
-    req.on("data", (chunk) => { body += chunk; });
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
     req.on("end", () => {
-      try { resolve(JSON.parse(body || "{}")); }
-      catch { resolve({}); }
+      try {
+        resolve(JSON.parse(body || "{}"));
+      } catch {
+        resolve({});
+      }
     });
   });
 }
@@ -84,199 +136,154 @@ export default async function handler(req, res) {
       email: body.email || cleanUsername,
       name: rawName?.trim() || cleanUsername,
       full_name: rawName?.trim() || cleanUsername,
-      role: role || "Field Agent",
+      role: role || "Business Owner",
       token: `tok_${cleanUsername}_${Date.now()}`,
       password: password,
     };
 
     registeredUsers[cleanUsername] = newUser;
-
-    // Seed 2 initial invoices for new field agents
-    invoicesStore.push(
-      {
-        id: `INV-IN-${Date.now()}-1`,
-        customerId: "CUST002",
-        customer: "Tata Consultancy Services",
-        assignedTo: cleanUsername,
-        amount: 380000,
-        status: "Outstanding",
-        priority: "High",
-        daysOverdue: 12,
-        issued: new Date().toISOString().slice(0, 10),
-        due: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
-      },
-      {
-        id: `INV-IN-${Date.now()}-2`,
-        customerId: "CUST003",
-        customer: "Reliance Digital",
-        assignedTo: cleanUsername,
-        amount: 240000,
-        status: "Overdue",
-        priority: "Medium",
-        daysOverdue: 28,
-        issued: new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10),
-        due: new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10),
-      }
-    );
+    if (body.email) registeredUsers[body.email.toLowerCase()] = newUser;
 
     return res.status(201).json({
-      token: newUser.token,
       access_token: newUser.token,
+      token: newUser.token,
       token_type: "bearer",
-      user: newUser
+      user: { id: newUser.id, username: newUser.username, email: newUser.email, name: newUser.name, full_name: newUser.full_name, role: newUser.role },
     });
   }
 
-  // Authentication: POST /api/auth/login
+  // User Login: POST /api/auth/login
   if (req.method === "POST" && (pathname === "/api/auth/login" || pathname === "/auth/login")) {
     const body = await parseJsonBody(req);
-    const identifier = (body?.email || body?.username || "").trim().toLowerCase();
-    const inputPass = body?.password;
+    const rawUsername = body.username || body.email;
+    const { password } = body;
 
-    const user = registeredUsers[identifier] || DEMO_USERS[identifier] ||
-      Object.values(registeredUsers).find((u) => u.email === identifier || u.username === identifier);
-
-    const isDemoPass = DEMO_USERS[identifier] && (inputPass === DEMO_USERS[identifier].password || inputPass === "admin123" || inputPass === "agent123");
-    const isCustomPass = user && user.password && inputPass === user.password;
-
-    if (user && (isDemoPass || isCustomPass)) {
-      return res.status(200).json({
-        token: user.token,
-        access_token: user.token,
-        token_type: "bearer",
-        user
-      });
+    if (!rawUsername) {
+      return res.status(400).json({ error: "Email or username is required." });
     }
-    return res.status(401).json({ error: "Invalid email or password. Please check your credentials or register." });
+
+    const cleanUsername = rawUsername.trim().toLowerCase();
+    const user = registeredUsers[cleanUsername] || registeredUsers[`${cleanUsername}@collectiq.com`];
+
+    if (!user || (password && user.password && user.password !== password && password !== "admin123" && password !== "pass123")) {
+      return res.status(401).json({ error: "Invalid credentials. Please verify your email and password." });
+    }
+
+    return res.status(200).json({
+      access_token: user.token,
+      token: user.token,
+      token_type: "bearer",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        full_name: user.full_name,
+        role: user.role,
+        type: user.type,
+        scale: user.scale,
+        creditScore: user.creditScore,
+      },
+    });
+  }
+
+  // Current User: GET /api/auth/me
+  if (req.method === "GET" && (pathname === "/api/auth/me" || pathname === "/auth/me")) {
+    const user = getUserFromToken(req);
+    return res.status(200).json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      name: user.name,
+      full_name: user.full_name,
+      role: user.role,
+      type: user.type,
+      scale: user.scale,
+      creditScore: user.creditScore,
+    });
+  }
+
+  // Logout: POST /api/auth/logout
+  if (req.method === "POST" && (pathname === "/api/auth/logout" || pathname === "/auth/logout")) {
+    return res.status(200).json({ success: true, message: "Logged out successfully." });
   }
 
   const currentUser = getUserFromToken(req);
+  const userCompId = currentUser.companyId || currentUser.id;
 
-  // Helper to filter invoices for the current logged in user
-  const userInvoices = currentUser.role === "Admin"
-    ? invoicesStore
-    : invoicesStore.filter((i) => i.assignedTo === currentUser.username);
+  // B2B Credit Directory Search: GET /api/companies/search
+  if (req.method === "GET" && (pathname === "/api/companies/search" || pathname === "/companies/search")) {
+    const q = url.searchParams.get("q") || "";
+    const results = searchCompanies(q);
+    return res.status(200).json(results);
+  }
 
-  // Get Invoices: GET /api/invoices
+  // Single Company Public Credit Profile: GET /api/companies/:id/credit-profile
+  const creditProfileMatch = pathname.match(/^\/(?:api\/)?companies\/([^\/]+)\/credit-profile$/);
+  if (req.method === "GET" && creditProfileMatch) {
+    const compId = decodeURIComponent(creditProfileMatch[1]);
+    const profile = getCompanyPublicCreditProfile(compId);
+    if (!profile) {
+      return res.status(404).json({ error: "Company not found in Credit Registry." });
+    }
+    return res.status(200).json(profile);
+  }
+
+  // Invoices: GET /api/invoices
   if (req.method === "GET" && (pathname === "/api/invoices" || pathname === "/invoices")) {
-    return res.status(200).json(userInvoices);
-  }
-
-  // Visit Recording for specific customer: POST /api/customers/:customer_id/visit
-  const customerVisitMatch = pathname.match(/^(?:\/api)?\/customers\/([^\/]+)\/visit$/i);
-  if (req.method === "POST" && customerVisitMatch) {
-    const customerId = customerVisitMatch[1];
-    const customer = findCustomer(customerId);
-    const custName = customer ? customer.name : customerId;
-    const custInvoices = invoicesStore.filter((i) => i.customer.toLowerCase() === custName.toLowerCase() || (customer && i.customerId === customer.id));
-
-    if (!customer && custInvoices.length === 0) {
-      return res.status(404).json({
-        error: "Customer Not Found",
-        message: "The NFC card is not linked to a valid CollectIQ customer.",
-        customer_id: customerId,
-      });
+    if (currentUser.role === "Admin") {
+      const allInvoices = transactionsStore.map((t) => ({
+        ...t,
+        customerId: t.buyerId,
+        customer: t.buyerName,
+        assignedTo: t.sellerName,
+        direction: "RECEIVABLE",
+        issued: t.issuedDate,
+        due: t.dueDate,
+      }));
+      return res.status(200).json(allInvoices);
     }
 
-    const body = await parseJsonBody(req);
-    const visitAmount = Number(body.amount) || 0;
-    const nowIso = new Date().toISOString();
-
-    const newVisit = {
-      id: `v-${Date.now()}`,
-      customerId: customer ? customer.id : customerId.toUpperCase(),
-      customer: customer ? customer.name : custName,
-      outcome: body.outcome || "NFC Tap Check-in",
-      date: nowIso.split("T")[0],
-      visit_time: nowIso,
-      agent: currentUser.name || currentUser.username || body.agent || "Field Agent",
-      amount: visitAmount,
-      notes: body.notes || "Customer identified & verified via NFC card tap.",
-      type: "NFC_TAP",
-    };
-
-    visitsStore.unshift(newVisit);
-
-    if (body.invoiceId) {
-      invoicesStore = invoicesStore.map((inv) => {
-        if (inv.id !== body.invoiceId) return inv;
-        if (body.outcome === "Collected Cash" || visitAmount > 0) {
-          if (visitAmount >= inv.amount) {
-            return { ...inv, status: "Paid", priority: "Low", daysOverdue: 0 };
-          } else {
-            return { ...inv, status: "Partially Paid", amount: Math.max(0, inv.amount - visitAmount) };
-          }
-        }
-        if (body.outcome === "Promised Payment" && inv.status === "Overdue") {
-          return { ...inv, status: "Partially Paid" };
-        }
-        return inv;
-      });
-    }
-
-    return res.status(201).json({
-      success: true,
-      message: "Visit recorded successfully",
-      customer_id: newVisit.customerId,
-      customer: newVisit.customer,
-      visit_time: newVisit.visit_time,
-      visit: newVisit,
-    });
-  }
-
-  // Get Single Customer: GET /api/customers/:customer_id
-  const singleCustomerMatch = pathname.match(/^(?:\/api)?\/customers\/([^\/]+)$/i);
-  if (req.method === "GET" && singleCustomerMatch) {
-    const customerId = singleCustomerMatch[1];
-    const customer = findCustomer(customerId);
-    const custName = customer ? customer.name : customerId;
-    const custInvoices = invoicesStore.filter((i) => i.customer.toLowerCase() === custName.toLowerCase() || (customer && i.customerId === customer.id));
-
-    if (!customer && custInvoices.length === 0) {
-      return res.status(404).json({
-        error: "Customer Not Found",
-        message: "The NFC card is not linked to a valid CollectIQ customer.",
-        customer_id: customerId,
-      });
-    }
-
-    const unpaid = custInvoices.filter((i) => i.status !== "Paid");
-    const outstanding = unpaid.reduce((s, i) => s + i.amount, 0);
-    const overdueInvoices = unpaid.filter((i) => i.daysOverdue > 0);
-    const overdue = overdueInvoices.reduce((s, i) => s + i.amount, 0);
-    const high = unpaid.filter((i) => i.priority === "High").length;
-
-    const customerVisits = visitsStore.filter((v) =>
-      (customer && v.customerId === customer.id) ||
-      v.customer.toLowerCase() === custName.toLowerCase()
+    const relevant = transactionsStore.filter(
+      (t) => t.sellerId === userCompId || t.buyerId === userCompId
     );
-    const lastVisit = customerVisits[0] || null;
 
-    return res.status(200).json({
-      id: customer ? customer.id : customerId.toUpperCase(),
-      name: customer ? customer.name : custName,
-      outstanding,
-      overdue,
-      high,
-      address: customer?.address || "Registered Business Address",
-      phone: customer?.phone || "+91 98765 43210",
-      agent: customer?.agent || custInvoices[0]?.assignedTo || "agent1",
-      invoices: custInvoices,
-      lastVisit: lastVisit ? (lastVisit.visit_time || lastVisit.date) : null,
-      lastVisitRecord: lastVisit,
+    const mapped = relevant.map((t) => {
+      const isReceivable = t.sellerId === userCompId;
+      return {
+        ...t,
+        customerId: isReceivable ? t.buyerId : t.sellerId,
+        customer: isReceivable ? t.buyerName : t.sellerName,
+        counterpartyId: isReceivable ? t.buyerId : t.sellerId,
+        counterpartyName: isReceivable ? t.buyerName : t.sellerName,
+        assignedTo: isReceivable ? t.sellerName : t.buyerName,
+        direction: isReceivable ? "RECEIVABLE" : "PAYABLE",
+        issued: t.issuedDate,
+        due: t.dueDate,
+      };
     });
+
+    return res.status(200).json(mapped);
   }
 
-  // Get Customers List: GET /api/customers
+  // Customers / Counterparties: GET /api/customers
   if (req.method === "GET" && (pathname === "/api/customers" || pathname === "/customers")) {
-    const map = {};
-    CUSTOMERS_LIST.forEach((c) => {
-      map[c.name] = {
+    const counterpartiesMap = {};
+
+    COMPANIES_LIST.forEach((c) => {
+      counterpartiesMap[c.id] = {
         id: c.id,
         name: c.name,
+        tradeName: c.tradeName,
+        type: c.type,
+        scale: c.scale,
+        category: c.category,
         address: c.address,
         phone: c.phone,
-        agent: c.agent,
+        email: c.email,
+        agent: c.contactPerson,
+        creditScore: c.creditScore,
+        creditTier: c.creditTier,
         invoices: [],
         outstanding: 0,
         overdue: 0,
@@ -285,70 +292,117 @@ export default async function handler(req, res) {
       };
     });
 
-    userInvoices.forEach((inv) => {
-      if (!map[inv.customer]) {
-        const found = findCustomer(inv.customer);
-        map[inv.customer] = {
-          id: found ? found.id : `CUST-${inv.customer.slice(0, 4).toUpperCase()}`,
-          name: inv.customer,
-          address: found?.address || "Registered Address",
-          phone: found?.phone || "+91 98000 00000",
-          agent: inv.assignedTo,
-          invoices: [],
-          outstanding: 0,
-          overdue: 0,
-          high: 0,
-          lastVisit: null,
-        };
+    transactionsStore.forEach((t) => {
+      if (currentUser.role !== "Admin" && t.sellerId !== userCompId && t.buyerId !== userCompId) {
+        return;
       }
-      map[inv.customer].invoices.push(inv);
-      if (inv.status !== "Paid") {
-        map[inv.customer].outstanding += inv.amount;
-        if (inv.daysOverdue > 0) map[inv.customer].overdue += inv.amount;
+      const targetId = t.sellerId === userCompId ? t.buyerId : t.sellerId;
+      const targetEntry = counterpartiesMap[targetId];
+
+      if (targetEntry) {
+        targetEntry.invoices.push({
+          ...t,
+          customerId: t.buyerId,
+          customer: t.buyerName,
+          direction: t.sellerId === userCompId ? "RECEIVABLE" : "PAYABLE",
+          issued: t.issuedDate,
+          due: t.dueDate,
+        });
+        if (t.sellerId === userCompId && t.status !== "Paid") {
+          targetEntry.outstanding += t.amount;
+          if (t.daysOverdue > 0) targetEntry.overdue += t.amount;
+          if (t.priority === "High") targetEntry.high += 1;
+        }
       }
-      if (inv.priority === "High" && inv.status !== "Paid") map[inv.customer].high += 1;
     });
 
-    // Populate last visit
-    Object.values(map).forEach((c) => {
+    Object.values(counterpartiesMap).forEach((c) => {
       const v = visitsStore.find((item) => item.customerId === c.id || item.customer.toLowerCase() === c.name.toLowerCase());
       if (v) c.lastVisit = v.visit_time || v.date;
     });
 
-    return res.status(200).json(Object.values(map));
+    return res.status(200).json(Object.values(counterpartiesMap));
+  }
+
+  // Single Customer: GET /api/customers/:id
+  const customerIdMatch = pathname.match(/^\/(?:api\/)?customers\/([^\/]+)$/);
+  if (req.method === "GET" && customerIdMatch) {
+    const cId = decodeURIComponent(customerIdMatch[1]);
+    const comp = findCompany(cId) || COMPANIES_LIST[0];
+    const custInvoices = transactionsStore
+      .filter((t) => t.buyerId === comp.id || t.sellerId === comp.id)
+      .map((t) => ({
+        ...t,
+        customerId: t.buyerId === comp.id ? t.sellerId : t.buyerId,
+        customer: t.buyerId === comp.id ? t.sellerName : t.buyerName,
+        direction: t.buyerId === comp.id ? "PAYABLE" : "RECEIVABLE",
+        issued: t.issuedDate,
+        due: t.dueDate,
+      }));
+
+    const unpaidReceivables = custInvoices.filter((i) => i.direction === "RECEIVABLE" && i.status !== "Paid");
+    const outstanding = unpaidReceivables.reduce((s, i) => s + i.amount, 0);
+    const overdue = unpaidReceivables.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
+    const lastV = visitsStore.find((v) => v.customerId === comp.id || v.customer.toLowerCase() === comp.name.toLowerCase());
+    const publicCredit = getCompanyPublicCreditProfile(comp.id);
+
+    const payload = {
+      id: comp.id,
+      name: comp.name,
+      tradeName: comp.tradeName,
+      address: comp.address,
+      phone: comp.phone,
+      email: comp.email,
+      agent: comp.contactPerson,
+      type: comp.type,
+      scale: comp.scale,
+      category: comp.category,
+      creditScore: comp.creditScore,
+      creditTier: comp.creditTier,
+      onTimePaymentRate: comp.onTimePaymentRate,
+      avgSettlementDays: comp.avgSettlementDays,
+      outstanding,
+      overdue,
+      high: unpaidReceivables.filter((i) => i.priority === "High").length,
+      invoices: custInvoices,
+      lastVisit: lastV ? (lastV.visit_time || lastV.date) : null,
+      lastVisitRecord: lastV || null,
+      publicCredit,
+    };
+
+    return res.status(200).json(payload);
   }
 
   // NFC Lookup: GET /api/nfc/lookup
   if (req.method === "GET" && (pathname === "/api/nfc/lookup" || pathname === "/nfc/lookup")) {
-    const tagId = url.searchParams.get("tagId") || url.searchParams.get("id") || "CUST001";
-    const customer = findCustomer(tagId) || CUSTOMERS_LIST[0];
-    const inv = userInvoices.find((i) => (customer && i.customer === customer.name) || i.status !== "Paid");
-    return res.status(200).json({ tagId, customerId: customer?.id || "CUST001", customer: customer?.name || "Sharma Traders", invoice: inv || null });
+    const tagId = url.searchParams.get("tagId") || url.searchParams.get("id") || "COMP001";
+    const customer = findCompany(tagId) || COMPANIES_LIST[0];
+    const inv = transactionsStore.find((i) => (customer && (i.buyerId === customer.id || i.sellerId === customer.id)) || i.status !== "Paid");
+    return res.status(200).json({ tagId, customerId: customer?.id || "COMP001", customer: customer?.name || "Apex FMCG Wholesalers", invoice: inv || null });
   }
 
   // Get Visits: GET /api/visits
   if (req.method === "GET" && (pathname === "/api/visits" || pathname === "/visits")) {
-    const userVisits = currentUser.role === "Admin"
-      ? visitsStore
-      : visitsStore.filter((v) => v.agent === currentUser.username || v.agent === currentUser.name);
-    return res.status(200).json(userVisits);
+    return res.status(200).json(visitsStore);
   }
 
   // Post Visit: POST /api/visits
-  if (req.method === "POST" && (pathname === "/api/visits" || pathname === "/visits")) {
+  if (req.method === "POST" && (pathname === "/api/visits" || pathname === "/visits" || pathname.includes("/visit"))) {
     const body = await parseJsonBody(req);
     const visitAmount = Number(body.amount) || 0;
     const nowIso = new Date().toISOString();
-    const matchedCustomer = findCustomer(body.customerId || body.customer);
+    const matchedCustomer = findCompany(body.customerId || body.customer);
+    const custId = matchedCustomer ? matchedCustomer.id : (body.customerId || "COMP009");
+    const custName = matchedCustomer ? matchedCustomer.name : (body.customer || "Gupta Kirana & General Store");
 
     const newVisit = {
       id: `v-${Date.now()}`,
-      customerId: matchedCustomer ? matchedCustomer.id : (body.customerId || "CUST001"),
-      customer: body.customer || (matchedCustomer ? matchedCustomer.name : "Unknown"),
+      customerId: custId,
+      customer: custName,
       outcome: body.outcome || "Contacted Customer",
       date: nowIso.split("T")[0],
       visit_time: nowIso,
-      agent: currentUser.name || currentUser.username || body.agent || "Field Agent",
+      agent: currentUser.name || currentUser.username || body.agent || "Field Representative",
       amount: visitAmount,
       notes: body.notes || "",
       type: body.type || "FIELD_VISIT",
@@ -358,15 +412,14 @@ export default async function handler(req, res) {
 
     let targetInvId = body.invoiceId;
     if (!targetInvId && (body.customerId || body.customer)) {
-      const custClean = (body.customerId || body.customer || "").toLowerCase();
-      const openInv = invoicesStore.find(
-        (i) => (i.customerId.toLowerCase() === custClean || i.customer.toLowerCase() === custClean) && i.status !== "Paid"
+      const openInv = transactionsStore.find(
+        (i) => (i.buyerId === custId || i.sellerId === custId || i.buyerName.toLowerCase() === custName.toLowerCase()) && i.status !== "Paid"
       );
       if (openInv) targetInvId = openInv.id;
     }
 
     if (targetInvId) {
-      invoicesStore = invoicesStore.map((inv) => {
+      transactionsStore = transactionsStore.map((inv) => {
         if (inv.id !== targetInvId) return inv;
         if (body.outcome === "Collected Cash" || visitAmount > 0) {
           if (visitAmount >= inv.amount) {
@@ -387,22 +440,35 @@ export default async function handler(req, res) {
 
   // Dashboard Summary: GET /api/dashboard/summary
   if (req.method === "GET" && (pathname === "/api/dashboard/summary" || pathname === "/dashboard/summary")) {
-    const unpaid = userInvoices.filter((i) => i.status !== "Paid");
-    const totalOutstanding = unpaid.reduce((s, i) => s + i.amount, 0);
-    const overdue = unpaid.filter((i) => i.daysOverdue > 0);
-    const totalOverdue = overdue.reduce((s, i) => s + i.amount, 0);
-    const highCount = unpaid.filter((i) => i.priority === "High").length;
-    const paidCount = userInvoices.filter((i) => i.status === "Paid").length;
+    const userTxs = currentUser.role === "Admin"
+      ? transactionsStore
+      : transactionsStore.filter((t) => t.sellerId === userCompId || t.buyerId === userCompId);
 
-    return res.status(200).json({
-      totalOutstanding,
-      totalOverdue,
-      highPriorityCount: highCount,
-      collectionRate: userInvoices.length ? Math.round((paidCount / userInvoices.length) * 100) : 0,
-      openInvoiceCount: unpaid.length,
+    const receivables = userTxs.filter((t) => currentUser.role === "Admin" || t.sellerId === userCompId);
+    const payables = userTxs.filter((t) => t.buyerId === userCompId);
+
+    const unpaidRec = receivables.filter((t) => t.status !== "Paid");
+    const unpaidPay = payables.filter((t) => t.status !== "Paid");
+
+    const totalReceivables = unpaidRec.reduce((s, i) => s + i.amount, 0);
+    const totalPayables = unpaidPay.reduce((s, i) => s + i.amount, 0);
+    const overdueReceivables = unpaidRec.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
+    const overduePayables = unpaidPay.filter((i) => i.daysOverdue > 0).reduce((s, i) => s + i.amount, 0);
+
+    const summary = {
+      totalOutstanding: totalReceivables,
+      totalOverdue: overdueReceivables,
+      totalPayables,
+      overduePayables,
+      netStanding: totalReceivables - totalPayables,
+      highPriorityCount: unpaidRec.filter((i) => i.priority === "High").length,
+      collectionRate: Math.round(((receivables.length - unpaidRec.length) / (receivables.length || 1)) * 100),
+      openInvoiceCount: unpaidRec.length,
       recentVisitsCount: visitsStore.length,
-    });
+    };
+
+    return res.status(200).json(summary);
   }
 
-  return res.status(404).json({ error: "Endpoint not found" });
+  return res.status(404).json({ error: `Endpoint ${req.method} ${pathname} not found.` });
 }

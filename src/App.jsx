@@ -38,6 +38,7 @@ import FieldVisit from "./components/FieldVisit.jsx";
 import VisitLog from "./components/VisitLog.jsx";
 import CustomerProfile from "./components/CustomerProfile.jsx";
 import NfcProgrammerModal from "./components/NfcProgrammerModal.jsx";
+import CompanySearch from "./components/CompanySearch.jsx";
 
 const SESSION_KEY = "collectiq_session";
 
@@ -205,14 +206,25 @@ export default function App() {
     );
   }
 
-  const unpaid = invoices.filter((i) => i.status !== "Paid");
-  const totalOutstanding = unpaid.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const overdue = unpaid.filter((i) => i.daysOverdue > 0);
-  const totalOverdue = overdue.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const highCount = unpaid.filter((i) => i.priority === "High").length;
-  const paidCount = invoices.filter((i) => i.status === "Paid").length;
+  const receivables = invoices.filter((i) => i.direction === "RECEIVABLE" || !i.direction);
+  const payables = invoices.filter((i) => i.direction === "PAYABLE");
+
+  const unpaidReceivables = receivables.filter((i) => i.status !== "Paid");
+  const unpaidPayables = payables.filter((i) => i.status !== "Paid");
+
+  const totalReceivables = unpaidReceivables.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const totalPayables = unpaidPayables.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const netMarketStanding = totalReceivables - totalPayables;
+
+  const overdueRec = unpaidReceivables.filter((i) => i.daysOverdue > 0);
+  const totalOverdueRec = overdueRec.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+  const highCount = unpaidReceivables.filter((i) => i.priority === "High").length;
+  const paidCount = receivables.filter((i) => i.status === "Paid").length;
   const collectionRate =
-    invoices.length > 0 ? Math.round((paidCount / invoices.length) * 100) : 0;
+    receivables.length > 0 ? Math.round((paidCount / receivables.length) * 100) : 0;
+
+  const userTrustScore = session.user?.creditScore || 820;
 
   return (
     <div
@@ -234,16 +246,18 @@ export default function App() {
               className="text-xl sm:text-2xl font-semibold tracking-tight"
               style={{ color: TEXT, fontFamily: SERIF }}
             >
-              {tab === "overview" && "Collections overview"}
-              {tab === "invoices" && "Invoices"}
-              {tab === "customers" && "Customers"}
-              {tab === "visits" && "Field Visits"}
+              {tab === "overview" && "Financial & Cash Flow Overview"}
+              {tab === "invoices" && "Invoices & Transactions"}
+              {tab === "customers" && "Counterparty Directory"}
+              {tab === "directory" && "B2B Credit Directory"}
+              {tab === "visits" && "Field Audit & Visits"}
             </h1>
             <p className="text-xs sm:text-sm mt-0.5 sm:mt-1" style={{ color: SUBTLE }}>
-              {tab === "overview" && "Where the money is, and who needs a nudge today."}
-              {tab === "invoices" && "Search, filter and triage every open invoice."}
-              {tab === "customers" && "Outstanding balances grouped by customer."}
-              {tab === "visits" && "Record field audit visits and cash collections."}
+              {tab === "overview" && "Real-time receivables to receive, payables to pay, and net market liquidity."}
+              {tab === "invoices" && "Triage all inward receivables and outward payables."}
+              {tab === "customers" && "Balances grouped by customer and supplier counterparties."}
+              {tab === "directory" && "Search any Indian company's CollectIQ Trust Score and total market balance."}
+              {tab === "visits" && "Record field audit visits and on-site payments."}
             </p>
           </div>
 
@@ -287,40 +301,45 @@ export default function App() {
 
         {loading && invoices.length === 0 ? (
           <div className="text-xs sm:text-sm py-16 text-center" style={{ color: SUBTLE }}>
-            Loading your dashboard data...
+            Loading your financial network data...
           </div>
         ) : (
           <>
             {tab === "overview" && (
               <div className="flex flex-col gap-4 sm:gap-5">
+                {/* 4 Enhanced KPI Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                   <KpiCard
                     icon={Wallet}
-                    label="Outstanding"
-                    value={money(totalOutstanding)}
+                    label="To Receive (Receivables)"
+                    value={money(totalReceivables)}
                     accent={PRIMARY}
-                    sub={`${unpaid.length} open invoices`}
+                    sub={`${unpaidReceivables.length} open receivables`}
                   />
                   <KpiCard
                     icon={Clock}
-                    label="Overdue"
-                    value={money(totalOverdue)}
-                    accent={HIGH}
-                    sub={`${overdue.length} past due`}
-                  />
-                  <KpiCard
-                    icon={AlertCircle}
-                    label="High priority"
-                    value={highCount}
-                    accent={HIGH}
-                    sub="need action today"
+                    label="To Pay (Payables)"
+                    value={money(totalPayables)}
+                    accent="#B45309"
+                    sub={`${unpaidPayables.length} open bills`}
                   />
                   <KpiCard
                     icon={TrendingUp}
-                    label="Collection rate"
-                    value={`${collectionRate}%`}
+                    label="Net Market Standing"
+                    value={
+                      netMarketStanding >= 0
+                        ? `+${money(netMarketStanding)}`
+                        : `-${money(Math.abs(netMarketStanding))}`
+                    }
+                    accent={netMarketStanding >= 0 ? PRIMARY : HIGH}
+                    sub={netMarketStanding >= 0 ? "Surplus liquidity" : "Net pending debt"}
+                  />
+                  <KpiCard
+                    icon={AlertCircle}
+                    label="Trust Rating"
+                    value={`${userTrustScore} /900`}
                     accent={PRIMARY}
-                    sub="of invoices paid"
+                    sub={`${collectionRate}% on-time rate`}
                   />
                 </div>
 
@@ -347,7 +366,7 @@ export default function App() {
                         className="text-xs sm:text-sm font-semibold"
                         style={{ color: TEXT }}
                       >
-                        Recent Collection & NFC Activity
+                        Recent Network Settlements & NFC Activity
                       </h3>
                     </div>
 
@@ -396,7 +415,7 @@ export default function App() {
                             style={{ borderColor: BORDER, color: SUBTLE }}
                           >
                             <span className="flex items-center gap-1">
-                              <User size={11} /> {v.agent || "Field Agent"}
+                              <User size={11} /> {v.agent || "Representative"}
                             </span>
                             {v.amount > 0 && (
                               <span className="font-bold font-mono text-gray-800">
@@ -424,7 +443,7 @@ export default function App() {
                       className="text-xs sm:text-sm font-semibold"
                       style={{ color: TEXT }}
                     >
-                      High priority invoices
+                      High priority pending invoices
                     </h3>
                     <button
                       onClick={() => setTab("invoices")}
@@ -449,6 +468,12 @@ export default function App() {
                 invoices={invoices}
                 onSelectCustomer={navigateToCustomer}
                 onOpenNfcProgrammer={() => setNfcModalOpen(true)}
+              />
+            )}
+            {tab === "directory" && (
+              <CompanySearch
+                token={session.token}
+                onSelectCompany={navigateToCustomer}
               />
             )}
 

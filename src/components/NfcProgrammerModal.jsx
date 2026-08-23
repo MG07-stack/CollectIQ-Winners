@@ -23,7 +23,7 @@ import {
 import { CUSTOMERS_LIST } from "../mockData.js";
 
 export default function NfcProgrammerModal({ isOpen, onClose, onSimulateTap }) {
-  const [selectedCustomerId, setSelectedCustomerId] = useState("CUST001");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("COMP001");
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
